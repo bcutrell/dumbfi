@@ -30,3 +30,9 @@ class Account:
             holdings[symbol] = sum(lot['shares'] for lot in lots)
 
         return cls(holdings, tax_lots=tax_lots)
+
+    def run(self, start_date: str, end_date: str, strategy: typing.Optional[typing.Callable] = None, **kwargs):
+        """
+        Run the account from start_date to end_date, executing strategy on each day.
+        """
+        pass
