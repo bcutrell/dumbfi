@@ -33,3 +33,17 @@ def test_from_tax_lots():
     except AssertionError:
         pass
 
+
+def test_run():
+    acct = dumbbt.Account.from_holdings({'AAPL': 100, '$': 100})
+    assert acct.cash == 100
+    assert acct.holdings == { 'AAPL': 100 }
+    assert acct.tax_lots == {}
+
+    def strategy(acct, current_date, **kwargs):
+        pass
+
+    acct.run('2020-01-01', '2020-01-02', strategy=strategy)
+    assert acct.cash == 100
+    assert acct.holdings == { 'AAPL': 100 }
+    assert acct.tax_lots == {}

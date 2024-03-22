@@ -1,6 +1,7 @@
 """
 """
 import typing
+import datetime
 
 CASH = '$'
 
@@ -35,4 +36,19 @@ class Account:
         """
         Run the account from start_date to end_date, executing strategy on each day.
         """
-        pass
+        # Convert start_date and end_date to datetime objects
+        start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d')
+        end_date = datetime.datetime.strptime(end_date, '%Y-%m-%d')
+
+        # Loop through each day from start_date to end_date
+        current_date = start_date
+        while current_date <= end_date:
+            if strategy:
+                strategy(self, current_date, **kwargs)
+                # Update account state based on strategy actions:
+                #   holdings
+                #   cash
+                #   etc.
+
+            # Increment to the next day (assuming daily execution)
+            current_date += datetime.timedelta(days=1)
