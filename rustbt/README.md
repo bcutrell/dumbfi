@@ -13,3 +13,9 @@ cargo build
 ```bash
 cargo run -- --config demo.toml
 ```
+
+3.  **Run the tests:**
+
+```bash
+cargo test
+```
