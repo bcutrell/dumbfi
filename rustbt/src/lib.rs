@@ -1,15 +1,27 @@
 use std::collections::HashMap;
+use chrono::NaiveDate;
+use std::error::Error;
+use std::fs::File;
+use std::io::BufReader;
+use csv::ReaderBuilder;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct Config {
     pub start_date: String,
     pub end_date: String,
     pub init_cash: f64,
+    pub prices_file: String,
 }
+
+pub type Ticker = String;
+pub type Date = NaiveDate;
+pub type Price = f64;
+type Prices = HashMap<Ticker, HashMap<Date, Price>>;
 
 pub struct Context {
     pub config: Config,
     pub portfolio: Portfolio,
+    pub prices: Prices,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -47,6 +59,28 @@ impl Portfolio {
         }
         total_balance
     }
+}
+
+pub fn read_prices(file_path: &str) -> Result<Prices, Box<dyn Error>> {
+    let file = File::open(file_path)?;
+    let reader = BufReader::new(file);
+    let mut csv_reader = ReaderBuilder::new().from_reader(reader);
+
+    let mut prices: Prices = HashMap::new();
+
+    for result in csv_reader.records() {
+        let record = result?;
+        let ticker: Ticker = record[0].to_string();
+        let date: Date = NaiveDate::parse_from_str(&record[1], "%Y-%m-%d")?;
+        let price: Price = record[2].parse()?;
+
+        prices
+            .entry(ticker)
+            .or_insert_with(HashMap::new)
+            .insert(date, price);
+    }
+
+    Ok(prices)
 }
 
 pub fn run_backtest(ctx: &Context) {
