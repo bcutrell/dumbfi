@@ -1,12 +1,12 @@
 use clap::Parser;
 use std::fs;
-use rustbt::{Config, Context, Portfolio, run_backtest, read_prices};
+use dumbbt::{Config, Context, Portfolio, run_backtest, read_prices};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Cli {
     /// Path to the configuration file
-    #[clap(short, long, value_parser)]
+    #[clap(short, long, required = true)]
     config: String,
 }
 
