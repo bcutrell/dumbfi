@@ -84,7 +84,7 @@ pub fn read_prices(file_path: &str) -> Result<Prices, Box<dyn Error>> {
 }
 
 pub fn run_backtest(ctx: &Context) {
-    println!("rustbt started");
+    println!("dumbbt started");
 
     let start_date = &ctx.config.start_date;
     let end_date = &ctx.config.end_date;
@@ -121,5 +121,5 @@ pub fn run_backtest(ctx: &Context) {
     println!("Ending cash:      {:>10.2}", portfolio.cash);
     println!("Ending balance:   {:>10.2}", total_balance);
     println!("Lots:             {:?}", portfolio.lots);
-    println!("rustbt completed");
+    println!("dumbbt completed");
 }
