@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use dumbbt::{Config, Portfolio, Lot};
+use dumbfi::{Config, Portfolio, Lot};
 
 #[test]
 fn test_portfolio_initialization() {
