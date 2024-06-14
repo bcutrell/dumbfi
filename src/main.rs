@@ -1,6 +1,6 @@
 use clap::Parser;
 use std::fs;
-use dumbbt::{Config, Context, Portfolio, run_backtest, read_prices};
+use dumbfi::{Config, Context, Portfolio, run_backtest, read_prices};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]

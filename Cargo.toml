@@ -1,5 +1,5 @@
 [package]
-name = "dumbbt"
+name = "dumbfi"
 version = "0.1.0"
 edition = "2021"
 
@@ -12,3 +12,4 @@ toml = "0.8.14"
 
 [lib]
 path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
