@@ -4,6 +4,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
 use csv::ReaderBuilder;
+use pyo3::prelude::*;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct Config {
@@ -119,4 +120,17 @@ pub fn run_backtest(ctx: &Context) {
     println!("Ending cash:      {:>10.2}", portfolio.cash);
     println!("Ending balance:   {:>10.2}", total_balance);
     println!("Lots:             {:?}", portfolio.lots);
+}
+
+/// Prints a message.
+#[pyfunction]
+fn hello() -> PyResult<String> {
+    Ok("Hello from my-project!".into())
+}
+
+/// A Python module implemented in Rust.
+#[pymodule]
+fn _lowlevel(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(hello, m)?)?;
+    Ok(())
 }
