@@ -3,6 +3,7 @@ name = "dumbfi"
 version = "0.1.0"
 description = "Add your description here"
 dependencies = [
+    "yfinance>=0.2.40",
 ]
 readme = "README.md"
 requires-python = ">= 3.12"
