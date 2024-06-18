@@ -1,2 +1,3 @@
-def hello() -> str:
-    return "Hello from dumbfi!"
+from dumbfi._lowlevel import hello
+
+__all__ = ["hello"]
