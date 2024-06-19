@@ -1,6 +1,6 @@
 use clap::Parser;
+use dumbfi::{read_prices, run_backtest, Config, Context, Portfolio};
 use std::fs;
-use dumbfi::{Config, Context, Portfolio, run_backtest, read_prices};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -19,7 +19,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let prices = read_prices(&config.prices_file)?;
 
     let portfolio = Portfolio::new(config.init_cash);
-    let context = Context { config, portfolio, prices };
+    let context = Context {
+        config,
+        portfolio,
+        prices,
+    };
     run_backtest(&context);
 
     Ok(())

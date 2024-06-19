@@ -10,6 +10,7 @@ symbol         RANDNX1     RANDNX2
 import yfinance as yf
 import pandas as pd
 
+
 def get_historical_prices(tickers, start_date, end_date):
     data = yf.download(tickers, start=start_date, end=end_date)
     prices_df = data["Close"]
