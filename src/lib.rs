@@ -1,10 +1,10 @@
 use chrono::NaiveDate;
 use csv::ReaderBuilder;
 use pyo3::prelude::*;
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
-use std::io::BufReader;
 
 /// Prints a message.
 #[pyfunction]
@@ -27,15 +27,81 @@ pub struct Config {
     pub prices_file: String,
 }
 
-pub type Ticker = String;
-pub type Date = NaiveDate;
-pub type Price = f64;
-type Prices = HashMap<Ticker, HashMap<Date, Price>>;
-
 pub struct Context {
     pub config: Config,
     pub portfolio: Portfolio,
-    pub prices: Prices,
+    pub market_data: MarketData,
+}
+
+#[derive(Debug)]
+struct StockPrice {
+    date: NaiveDate,
+    ticker: String,
+    price: f64,
+}
+
+type DateTickerKey = (NaiveDate, String);
+
+pub struct MarketData {
+    prices: BTreeMap<DateTickerKey, StockPrice>,
+}
+
+impl MarketData {
+    pub fn new() -> Self {
+        MarketData {
+            prices: BTreeMap::new(),
+        }
+    }
+
+    fn add_stock_price(&mut self, date: NaiveDate, ticker: String, price: f64) {
+        let key = (date, ticker.clone());
+        self.prices.insert(
+            key,
+            StockPrice {
+                date,
+                ticker,
+                price,
+            },
+        );
+    }
+
+    fn get_price(&self, date: NaiveDate, ticker: &str) -> Option<&StockPrice> {
+        let key = (date, ticker.to_string());
+        self.prices.get(&key)
+    }
+
+    fn get_prices_in_range(
+        &self,
+        ticker: &str,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Vec<&StockPrice> {
+        self.prices
+            .range((start_date, ticker.to_string())..=(end_date, ticker.to_string()))
+            .map(|(_, price)| price)
+            .collect()
+    }
+
+    fn load_prices_from_csv(file_path: &str) -> Result<Self, Box<dyn Error>> {
+        let mut market_data = MarketData::new();
+        let file = File::open(file_path)?;
+        let mut rdr = ReaderBuilder::new().has_headers(true).from_reader(file);
+
+        let headers = rdr.headers()?.clone();
+
+        for result in rdr.records() {
+            let record = result?;
+            let date = NaiveDate::parse_from_str(&record[0], "%Y-%m-%d")?;
+
+            for (i, header) in headers.iter().enumerate().skip(1) {
+                let ticker = header.to_string();
+                let price: f64 = record[i].parse()?;
+                market_data.add_stock_price(date, ticker, price);
+            }
+        }
+
+        Ok(market_data)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -73,28 +139,6 @@ impl Portfolio {
         }
         total_balance
     }
-}
-
-pub fn read_prices(file_path: &str) -> Result<Prices, Box<dyn Error>> {
-    let file = File::open(file_path)?;
-    let reader = BufReader::new(file);
-    let mut csv_reader = ReaderBuilder::new().from_reader(reader);
-
-    let mut prices: Prices = HashMap::new();
-
-    for result in csv_reader.records() {
-        let record = result?;
-        let ticker: Ticker = record[0].to_string();
-        let date: Date = NaiveDate::parse_from_str(&record[1], "%Y-%m-%d")?;
-        let price: Price = record[2].parse()?;
-
-        prices
-            .entry(ticker)
-            .or_insert_with(HashMap::new)
-            .insert(date, price);
-    }
-
-    Ok(prices)
 }
 
 pub fn run_backtest(ctx: &Context) {
