@@ -2,7 +2,6 @@ use chrono::NaiveDate;
 use csv::ReaderBuilder;
 use pyo3::prelude::*;
 use std::collections::BTreeMap;
-use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 use serde::Deserialize;
@@ -166,18 +165,44 @@ impl Portfolio {
     }
 
     pub fn add_lot(&mut self, lot: Lot) {
+        // Check if there is enough cash to buy the lot
+        if lot.shares * lot.purchase_price > self.cash {
+            return;
+        }
         self.cash -= lot.shares * lot.purchase_price;
         self.lots.push(lot);
     }
 
-    pub fn calculate_total_balance(&self, current_prices: &HashMap<String, f64>) -> f64 {
-        let mut total_balance = self.cash;
+    pub fn total_value(&self, market_data: &MarketData, date: NaiveDate) -> f64 {
+        let mut total = self.cash;
         for lot in &self.lots {
-            if let Some(&current_price) = current_prices.get(&lot.ticker) {
-                total_balance += lot.shares * current_price;
+            if let Some(price) = market_data.get_price(date, &lot.ticker) {
+                total += lot.shares * price.price;
+            } else {
+                eprintln!("Price not found for {} on {}", lot.ticker, date);
             }
         }
-        total_balance
+        total
+    }
+
+    pub fn print_holdings(&self) {
+        println!("$:            {:>20.2}", self.cash);
+
+        // sum lots for each ticker
+        let mut ticker_shares: BTreeMap<String, f64> = BTreeMap::new();
+        let mut ticker_lot_count: BTreeMap<String, usize> = BTreeMap::new();
+
+        for lot in &self.lots {
+            let shares = ticker_shares.entry(lot.ticker.clone()).or_insert(0.0);
+            *shares += lot.shares;
+            ticker_lot_count
+                .entry(lot.ticker.clone())
+                .and_modify(|e| *e += 1)
+                .or_insert(1);
+        }
+        for (ticker, shares) in ticker_shares {
+            println!("{}:         {:>20.2} ({} lots)", ticker, shares, ticker_lot_count[&ticker]);
+        }
     }
 }
 
@@ -190,39 +215,47 @@ Run backtest
 pub fn run_backtest(ctx: &Context) {
     let start_date = &ctx.config.start_date;
     let end_date = &ctx.config.end_date;
+    let market_data = &ctx.market_data;
     let mut portfolio = ctx.portfolio.clone();
 
-    println!("Start date:       {}", start_date);
-    println!("End date:         {}", end_date);
-    println!("Initial cash:     {:>10.2}", portfolio.cash);
+    // Before backtest
+    println!("Start date:   {:>20}", start_date);
+    println!("End date:     {:>20}", end_date);
+    println!("Initial cash: {:>20.2}", portfolio.cash);
 
-    // Define constants for buy and sell prices
-    const BUY_PRICE: f64 = 100.0;
-    const SELL_PRICE: f64 = 110.0;
-    let ticker = "MSFT";
+    // Parse the start and end dates
+    let start_date = NaiveDate::parse_from_str(start_date, "%Y-%m-%d").unwrap();
+    let end_date = NaiveDate::parse_from_str(end_date, "%Y-%m-%d").unwrap();
 
-    // Simulate buying the asset
-    let shares_bought = portfolio.cash / BUY_PRICE;
-    let lot = Lot {
-        ticker: ticker.to_string(),
-        shares: shares_bought,
-        purchase_price: BUY_PRICE,
-    };
+    let mut current_date = start_date;
+    let mut last_market_date = start_date;
+    while current_date <= end_date {
+        // check if current date in market data
+        if market_data.get_price(current_date, "AAPL").is_none() {
+            current_date = current_date.succ_opt().unwrap();
+            continue;
+        }
 
-    // Add the lot to the portfolio and update the cash balance
-    portfolio.cash -= lot.shares * lot.purchase_price;
-    portfolio.add_lot(lot);
+        // buy one share of AAPL
+        let price = market_data.get_price(current_date, "AAPL");
+        if let Some(price) = price {
+            let lot = Lot {
+                ticker: price.ticker.clone(),
+                shares: 1.0,
+                purchase_price: price.price,
+            };
+            portfolio.add_lot(lot);
+            last_market_date = current_date;
+        }
+        current_date = current_date.succ_opt().unwrap();
+    }
 
-    // Define current prices for assets
-    let mut current_prices = HashMap::new();
-    current_prices.insert(ticker.to_string(), SELL_PRICE);
-
-    // Calculate the total balance after selling the asset
-    let total_balance = portfolio.calculate_total_balance(&current_prices);
-
-    println!("Ending cash:      {:>10.2}", portfolio.cash);
-    println!("Ending balance:   {:>10.2}", total_balance);
-    println!("Lots:             {:?}", portfolio.lots);
+    let ending_value = portfolio.total_value(&market_data, last_market_date);
+    println!("Ending cash:  {:>20.2}", portfolio.cash);
+    println!("Ending value: {:>20.2}", ending_value);
+    println!("Total return: {:>20.2}", ending_value - ctx.config.init_cash);
+    println!("Ending Portfolio holdings:");
+    portfolio.print_holdings();
 }
 
 /*
