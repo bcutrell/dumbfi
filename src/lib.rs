@@ -1,10 +1,10 @@
 use chrono::NaiveDate;
 use csv::ReaderBuilder;
 use pyo3::prelude::*;
+use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fs;
-use serde::Deserialize;
 use toml;
 
 /*
@@ -124,6 +124,17 @@ impl MarketData {
         self.prices.get(&key)
     }
 
+    /// Returns true if there are prices in the market data on the given date
+    pub fn has_prices_on_date(&self, date: NaiveDate) -> bool {
+        // Start the range at the beginning of the day with an empty string.
+        let start = (date, "".to_string());
+        // End the range at the end of the day with a string that
+        // is guaranteed to be greater than any possible valid string.
+        let end = (date, "\u{FFFF}".to_string());
+
+        self.prices.range(start..=end).next().is_some()
+    }
+
     pub fn get_prices_in_range(
         &self,
         ticker: &str,
@@ -201,7 +212,10 @@ impl Portfolio {
                 .or_insert(1);
         }
         for (ticker, shares) in ticker_shares {
-            println!("{}:         {:>20.2} ({} lots)", ticker, shares, ticker_lot_count[&ticker]);
+            println!(
+                "{}:         {:>20.2} ({} lots)",
+                ticker, shares, ticker_lot_count[&ticker]
+            );
         }
     }
 }
@@ -218,6 +232,21 @@ pub fn run_backtest(ctx: &Context) {
     let market_data = &ctx.market_data;
     let mut portfolio = ctx.portfolio.clone();
 
+    // TODO
+    // add rebalancer class that takes in a portfolio and market data
+    // and determines the trades to make to rebalance the portfolio
+    // rebalancer could be a rust impl, or a python class that calls
+    // into rust to get the portfolio and market data
+    // or an system call that takes in the portfolio and market data
+    // and returns the trades to make
+
+    // portfolio::run_backtest(&mut portfolio, market_data, start_date, end_date);
+    // portfolio.add_target("AAPL", 1.0);
+    // portfolio.print_profile();
+    // portfolio.set_tax_rates(long_term=0.15, short_term=0.30);
+    // portfolio.update_profile(long_term_tax_rate=0.15, short_term_tax_rate=0.30);
+    // dumbbt::run_backtest(&mut portfolio, market_data, start_date, end_date);
+
     // Before backtest
     println!("Start date:   {:>20}", start_date);
     println!("End date:     {:>20}", end_date);
@@ -229,9 +258,9 @@ pub fn run_backtest(ctx: &Context) {
 
     let mut current_date = start_date;
     let mut last_market_date = start_date;
+
     while current_date <= end_date {
-        // check if current date in market data
-        if market_data.get_price(current_date, "AAPL").is_none() {
+        if !market_data.has_prices_on_date(current_date) {
             current_date = current_date.succ_opt().unwrap();
             continue;
         }
@@ -253,7 +282,10 @@ pub fn run_backtest(ctx: &Context) {
     let ending_value = portfolio.total_value(&market_data, last_market_date);
     println!("Ending cash:  {:>20.2}", portfolio.cash);
     println!("Ending value: {:>20.2}", ending_value);
-    println!("Total return: {:>20.2}", ending_value - ctx.config.init_cash);
+    println!(
+        "Total return: {:>20.2}",
+        ending_value - ctx.config.init_cash
+    );
     println!("Ending Portfolio holdings:");
     portfolio.print_holdings();
 }
@@ -366,7 +398,6 @@ mod tests {
         assert_eq!(prices[1].ticker, "MSFT");
         assert_eq!(prices[2].ticker, "MSFT");
     }
-
 
     #[test]
     fn test_get_price_not_found() {
