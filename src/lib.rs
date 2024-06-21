@@ -4,9 +4,16 @@ use pyo3::prelude::*;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::error::Error;
-use std::fs::File;
+use std::fs;
+use serde::Deserialize;
+use toml;
 
-/// Prints a message.
+/*
+-------------------------------------------------------------------------
+Python bindings
+-------------------------------------------------------------------------
+*/
+
 #[pyfunction]
 fn hello() -> PyResult<String> {
     Ok("Hello from rust!".into())
@@ -19,7 +26,13 @@ fn _lowlevel(_py: Python, m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
-#[derive(Debug, serde::Deserialize)]
+/*
+-------------------------------------------------------------------------
+Config
+-------------------------------------------------------------------------
+*/
+
+#[derive(Debug, Deserialize)]
 pub struct Config {
     pub start_date: String,
     pub end_date: String,
@@ -27,23 +40,47 @@ pub struct Config {
     pub prices_file: String,
 }
 
+impl Config {
+    pub fn from_toml_file_path(file_path: &str) -> Result<Self, Box<dyn Error>> {
+        // Read the TOML configuration file content into a string
+        let config_content = fs::read_to_string(file_path)?;
+
+        // Parse the TOML string into a Config instance
+        let config: Self = toml::from_str(&config_content)?;
+
+        Ok(config)
+    }
+}
+
+/*
+-------------------------------------------------------------------------
+Context
+-------------------------------------------------------------------------
+*/
+
 pub struct Context {
     pub config: Config,
     pub portfolio: Portfolio,
     pub market_data: MarketData,
 }
 
+/*
+-------------------------------------------------------------------------
+Market data
+-------------------------------------------------------------------------
+*/
+
 #[derive(Debug)]
-struct StockPrice {
-    date: NaiveDate,
-    ticker: String,
-    price: f64,
+pub struct StockPrice {
+    pub date: NaiveDate,
+    pub ticker: String,
+    pub price: f64,
 }
 
 type DateTickerKey = (NaiveDate, String);
 
 pub struct MarketData {
-    prices: BTreeMap<DateTickerKey, StockPrice>,
+    pub prices: BTreeMap<DateTickerKey, StockPrice>,
 }
 
 impl MarketData {
@@ -53,7 +90,25 @@ impl MarketData {
         }
     }
 
-    fn add_stock_price(&mut self, date: NaiveDate, ticker: String, price: f64) {
+    pub fn with_prices_file(mut self, file_path: &str) -> Result<Self, Box<dyn Error>> {
+        let file = fs::File::open(file_path)?;
+        let mut rdr = ReaderBuilder::new().has_headers(true).from_reader(file);
+        let headers = rdr.headers()?.clone();
+
+        for result in rdr.records() {
+            let record = result?;
+            let date = NaiveDate::parse_from_str(&record[0], "%Y-%m-%d")?;
+
+            for (i, header) in headers.iter().enumerate().skip(1) {
+                let ticker = header.to_string();
+                let price: f64 = record[i].parse()?;
+                self.add_price(date, ticker, price);
+            }
+        }
+        Ok(self)
+    }
+
+    fn add_price(&mut self, date: NaiveDate, ticker: String, price: f64) {
         let key = (date, ticker.clone());
         self.prices.insert(
             key,
@@ -65,12 +120,12 @@ impl MarketData {
         );
     }
 
-    fn get_price(&self, date: NaiveDate, ticker: &str) -> Option<&StockPrice> {
+    pub fn get_price(&self, date: NaiveDate, ticker: &str) -> Option<&StockPrice> {
         let key = (date, ticker.to_string());
         self.prices.get(&key)
     }
 
-    fn get_prices_in_range(
+    pub fn get_prices_in_range(
         &self,
         ticker: &str,
         start_date: NaiveDate,
@@ -81,28 +136,13 @@ impl MarketData {
             .map(|(_, price)| price)
             .collect()
     }
-
-    fn load_prices_from_csv(file_path: &str) -> Result<Self, Box<dyn Error>> {
-        let mut market_data = MarketData::new();
-        let file = File::open(file_path)?;
-        let mut rdr = ReaderBuilder::new().has_headers(true).from_reader(file);
-
-        let headers = rdr.headers()?.clone();
-
-        for result in rdr.records() {
-            let record = result?;
-            let date = NaiveDate::parse_from_str(&record[0], "%Y-%m-%d")?;
-
-            for (i, header) in headers.iter().enumerate().skip(1) {
-                let ticker = header.to_string();
-                let price: f64 = record[i].parse()?;
-                market_data.add_stock_price(date, ticker, price);
-            }
-        }
-
-        Ok(market_data)
-    }
 }
+
+/*
+-------------------------------------------------------------------------
+Portfolio
+-------------------------------------------------------------------------
+*/
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Lot {
@@ -141,6 +181,12 @@ impl Portfolio {
     }
 }
 
+/*
+-------------------------------------------------------------------------
+Run backtest
+-------------------------------------------------------------------------
+*/
+
 pub fn run_backtest(ctx: &Context) {
     let start_date = &ctx.config.start_date;
     let end_date = &ctx.config.end_date;
@@ -153,7 +199,7 @@ pub fn run_backtest(ctx: &Context) {
     // Define constants for buy and sell prices
     const BUY_PRICE: f64 = 100.0;
     const SELL_PRICE: f64 = 110.0;
-    let ticker = "ASSET";
+    let ticker = "MSFT";
 
     // Simulate buying the asset
     let shares_bought = portfolio.cash / BUY_PRICE;
@@ -177,4 +223,122 @@ pub fn run_backtest(ctx: &Context) {
     println!("Ending cash:      {:>10.2}", portfolio.cash);
     println!("Ending balance:   {:>10.2}", total_balance);
     println!("Lots:             {:?}", portfolio.lots);
+}
+
+/*
+-------------------------------------------------------------------------
+Tests
+-------------------------------------------------------------------------
+*/
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_portfolio_init() {
+        let portfolio = Portfolio::new(1000.0);
+        assert_eq!(portfolio.cash, 1000.0);
+        assert!(portfolio.lots.is_empty());
+    }
+
+    #[test]
+    fn test_add_lot() {
+        let mut portfolio = Portfolio::new(1000.0);
+        let lot = Lot {
+            ticker: "ASSET".to_string(),
+            shares: 10.0,
+            purchase_price: 100.0,
+        };
+        portfolio.add_lot(lot.clone());
+        assert_eq!(portfolio.lots.len(), 1);
+        assert_eq!(portfolio.lots[0], lot);
+    }
+
+    #[test]
+    fn test_calculate_total_balance() {
+        let mut portfolio = Portfolio::new(1000.0);
+        let lot = Lot {
+            ticker: "ASSET".to_string(),
+            shares: 10.0,
+            purchase_price: 100.0,
+        };
+        portfolio.add_lot(lot);
+
+        let mut current_prices = HashMap::new();
+        current_prices.insert("ASSET".to_string(), 110.0);
+
+        let total_balance = portfolio.calculate_total_balance(&current_prices);
+        assert_eq!(total_balance, 1100.0); // 0 cash + 1100 current value
+    }
+
+    #[test]
+    fn test_config_parsing() {
+        let toml_str = r#"
+        start_date = "2023-01-01"
+        end_date = "2023-12-31"
+        init_cash = 1000.0
+        prices_file = "prices.csv"
+    "#;
+
+        let config: Config = toml::from_str(toml_str).unwrap();
+        assert_eq!(config.start_date, "2023-01-01");
+        assert_eq!(config.end_date, "2023-12-31");
+        assert_eq!(config.init_cash, 1000.0);
+        assert_eq!(config.prices_file, "prices.csv");
+    }
+
+    #[test]
+    fn test_new_market_data() {
+        let market_data = MarketData::new();
+        assert!(market_data.prices.is_empty());
+    }
+
+    #[test]
+    fn test_add_and_get_stock_price() {
+        let mut market_data = MarketData::new();
+        let date = NaiveDate::from_ymd_opt(2021, 1, 1).expect("Invalid date");
+        market_data.add_price(date, "MSFT".to_string(), 217.69);
+
+        let price = market_data.get_price(date, "MSFT");
+        assert!(price.is_some());
+        let price = price.unwrap();
+        assert_eq!(price.date, date);
+        assert_eq!(price.ticker, "MSFT");
+        assert_eq!(price.price, 217.69);
+    }
+
+    #[test]
+    fn test_get_prices_in_range() {
+        let mut market_data = MarketData::new();
+        let date0 = NaiveDate::from_ymd_opt(2021, 1, 1).expect("Invalid date");
+        let date1 = NaiveDate::from_ymd_opt(2021, 1, 2).expect("Invalid date");
+        let date2 = NaiveDate::from_ymd_opt(2021, 1, 3).expect("Invalid date");
+
+        market_data.add_price(date0, "MSFT".to_string(), 217.00);
+        market_data.add_price(date1, "MSFT".to_string(), 218.00);
+        market_data.add_price(date2, "MSFT".to_string(), 219.00);
+
+        let prices = market_data.get_prices_in_range("MSFT", date0, date2);
+        assert_eq!(prices.len(), 3);
+        assert_eq!(prices[0].date, date0);
+        assert_eq!(prices[1].date, date1);
+        assert_eq!(prices[2].date, date2);
+
+        assert_eq!(prices[0].price, 217.00);
+        assert_eq!(prices[1].price, 218.00);
+        assert_eq!(prices[2].price, 219.00);
+
+        assert_eq!(prices[0].ticker, "MSFT");
+        assert_eq!(prices[1].ticker, "MSFT");
+        assert_eq!(prices[2].ticker, "MSFT");
+    }
+
+
+    #[test]
+    fn test_get_price_not_found() {
+        let market_data = MarketData::new();
+        let date = NaiveDate::from_ymd_opt(2021, 1, 1).expect("Invalid date");
+        assert!(market_data.get_price(date, "MSFT").is_none());
+    }
 }
