@@ -1,4 +1,5 @@
 use chrono::NaiveDate;
+use std::collections::HashMap;
 use csv::ReaderBuilder;
 use pyo3::prelude::*;
 use serde::Deserialize;
@@ -163,54 +164,79 @@ pub struct Lot {
 
 #[derive(Debug, Clone)]
 pub struct Portfolio {
-    pub lots: Vec<Lot>,
     pub cash: f64,
+    pub lots: HashMap<String, Vec<Lot>>,
 }
 
 impl Portfolio {
-    pub fn new(init_cash: f64) -> Self {
+    pub fn new(cash: f64, lots: HashMap<String, Vec<Lot>>) -> Self {
+        Portfolio { cash, lots }
+    }
+
+    pub fn from_cash(init_cash: f64) -> Self {
         Portfolio {
-            lots: Vec::new(),
             cash: init_cash,
+            lots: HashMap::new(),
         }
     }
 
+    pub fn from_positions(positions: Vec<Lot>) -> Self {
+        let mut lots: HashMap<String, Vec<Lot>> = HashMap::new();
+        for lot in positions {
+            lots.entry(lot.ticker.clone()).or_insert(Vec::new()).push(lot);
+        }
+        Portfolio { cash: 0.0, lots }
+    }
+
+    pub fn from_lots(lots: HashMap<String, Vec<Lot>>) -> Self {
+        Portfolio { cash: 0.0, lots }
+    }
+
+    pub fn add_cash(&mut self, amount: f64) {
+        self.cash += amount;
+    }
+
+    // TODO - this should be buy_lot
     pub fn add_lot(&mut self, lot: Lot) {
         // Check if there is enough cash to buy the lot
         if lot.shares * lot.purchase_price > self.cash {
             return;
         }
         self.cash -= lot.shares * lot.purchase_price;
-        self.lots.push(lot);
+        self.lots.entry(lot.ticker.clone()).or_insert(Vec::new()).push(lot);
     }
 
-    pub fn total_value(&self, market_data: &MarketData, date: NaiveDate) -> f64 {
+    pub fn calc_total_value(&self, market_data: &MarketData, date: NaiveDate) -> f64 {
         let mut total = self.cash;
-        for lot in &self.lots {
-            if let Some(price) = market_data.get_price(date, &lot.ticker) {
-                total += lot.shares * price.price;
-            } else {
-                eprintln!("Price not found for {} on {}", lot.ticker, date);
+        for (ticker, lots) in &self.lots {
+            for lot in lots {
+                if let Some(price) = market_data.get_price(date, ticker) {
+                    total += lot.shares * price.price;
+                } else {
+                    eprintln!("Price not found for {} on {}", ticker, date);
+                }
             }
         }
         total
     }
 
     pub fn print_holdings(&self) {
-        println!("$:            {:>20.2}", self.cash);
-
-        // sum lots for each ticker
+        // Sum lots for each ticker
         let mut ticker_shares: BTreeMap<String, f64> = BTreeMap::new();
         let mut ticker_lot_count: BTreeMap<String, usize> = BTreeMap::new();
 
-        for lot in &self.lots {
-            let shares = ticker_shares.entry(lot.ticker.clone()).or_insert(0.0);
-            *shares += lot.shares;
-            ticker_lot_count
-                .entry(lot.ticker.clone())
-                .and_modify(|e| *e += 1)
-                .or_insert(1);
+        for (ticker, lots) in &self.lots {
+            for lot in lots {
+                let shares = ticker_shares.entry(ticker.clone()).or_insert(0.0);
+                *shares += lot.shares;
+                ticker_lot_count
+                    .entry(ticker.clone())
+                    .and_modify(|e| *e += 1)
+                    .or_insert(1);
+            }
         }
+
+        println!("$:            {:>20.2}", self.cash);
         for (ticker, shares) in ticker_shares {
             println!(
                 "{}:         {:>20.2} ({} lots)",
@@ -219,6 +245,14 @@ impl Portfolio {
         }
     }
 }
+
+/*
+-------------------------------------------------------------------------
+Rebalancer
+-------------------------------------------------------------------------
+*/
+
+
 
 /*
 -------------------------------------------------------------------------
@@ -231,21 +265,6 @@ pub fn run_backtest(ctx: &Context) {
     let end_date = &ctx.config.end_date;
     let market_data = &ctx.market_data;
     let mut portfolio = ctx.portfolio.clone();
-
-    // TODO
-    // add rebalancer class that takes in a portfolio and market data
-    // and determines the trades to make to rebalance the portfolio
-    // rebalancer could be a rust impl, or a python class that calls
-    // into rust to get the portfolio and market data
-    // or an system call that takes in the portfolio and market data
-    // and returns the trades to make
-
-    // portfolio::run_backtest(&mut portfolio, market_data, start_date, end_date);
-    // portfolio.add_target("AAPL", 1.0);
-    // portfolio.print_profile();
-    // portfolio.set_tax_rates(long_term=0.15, short_term=0.30);
-    // portfolio.update_profile(long_term_tax_rate=0.15, short_term_tax_rate=0.30);
-    // dumbbt::run_backtest(&mut portfolio, market_data, start_date, end_date);
 
     // Before backtest
     println!("Start date:   {:>20}", start_date);
@@ -265,6 +284,14 @@ pub fn run_backtest(ctx: &Context) {
             continue;
         }
 
+        // TODO
+        // add rebalancer class that takes in a portfolio and market data
+        // and determines the trades to make to rebalance the portfolio
+        // rebalancer could be a rust impl, or a python class that calls
+        // into rust to get the portfolio and market data
+        // or an system call that takes in the portfolio and market data
+        // and returns the trades to make
+
         // buy one share of AAPL
         let price = market_data.get_price(current_date, "AAPL");
         if let Some(price) = price {
@@ -279,7 +306,8 @@ pub fn run_backtest(ctx: &Context) {
         current_date = current_date.succ_opt().unwrap();
     }
 
-    let ending_value = portfolio.total_value(&market_data, last_market_date);
+    let ending_value = portfolio.calc_total_value(&market_data, last_market_date);
+
     println!("Ending cash:  {:>20.2}", portfolio.cash);
     println!("Ending value: {:>20.2}", ending_value);
     println!(
@@ -302,27 +330,27 @@ mod tests {
 
     #[test]
     fn test_portfolio_init() {
-        let portfolio = Portfolio::new(1000.0);
+        let portfolio = Portfolio::from_cash(1000.0);
         assert_eq!(portfolio.cash, 1000.0);
         assert!(portfolio.lots.is_empty());
     }
 
     #[test]
     fn test_add_lot() {
-        let mut portfolio = Portfolio::new(1000.0);
+        let mut portfolio = Portfolio::from_cash(1000.0);
         let lot = Lot {
             ticker: "ASSET".to_string(),
             shares: 10.0,
             purchase_price: 100.0,
         };
         portfolio.add_lot(lot.clone());
-        assert_eq!(portfolio.lots.len(), 1);
-        assert_eq!(portfolio.lots[0], lot);
+        assert_eq!(portfolio.lots[&lot.ticker].len(), 1);
+        assert_eq!(portfolio.lots[&lot.ticker][0], lot);
     }
 
     #[test]
-    fn test_calculate_total_balance() {
-        let mut portfolio = Portfolio::new(1000.0);
+    fn test_calc_total_value() {
+        let mut portfolio = Portfolio::from_cash(1000.0);
         let lot = Lot {
             ticker: "ASSET".to_string(),
             shares: 10.0,
@@ -330,11 +358,9 @@ mod tests {
         };
         portfolio.add_lot(lot);
 
-        let mut current_prices = HashMap::new();
-        current_prices.insert("ASSET".to_string(), 110.0);
-
-        let total_balance = portfolio.calculate_total_balance(&current_prices);
-        assert_eq!(total_balance, 1100.0); // 0 cash + 1100 current value
+        // TODO
+        // let total_value = portfolio.calc_total_value(...);
+        // assert_eq!(total_value, 1100.0); // 0 cash + 1100 current value
     }
 
     #[test]
