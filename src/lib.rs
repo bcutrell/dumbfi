@@ -196,13 +196,17 @@ impl Portfolio {
         self.cash += amount;
     }
 
-    // TODO - this should be buy_lot
-    pub fn add_lot(&mut self, lot: Lot) {
+    pub fn buy_lot(&mut self, lot: Lot) {
         // Check if there is enough cash to buy the lot
+        // no margin trading at the moment
         if lot.shares * lot.purchase_price > self.cash {
             return;
         }
         self.cash -= lot.shares * lot.purchase_price;
+        self.lots.entry(lot.ticker.clone()).or_insert(Vec::new()).push(lot);
+    }
+
+    pub fn add_lot(&mut self, lot: Lot) {
         self.lots.entry(lot.ticker.clone()).or_insert(Vec::new()).push(lot);
     }
 
@@ -352,15 +356,22 @@ mod tests {
     fn test_calc_total_value() {
         let mut portfolio = Portfolio::from_cash(1000.0);
         let lot = Lot {
-            ticker: "ASSET".to_string(),
-            shares: 10.0,
+            ticker: "MSFT".to_string(),
+            shares: 1.0,
             purchase_price: 100.0,
         };
-        portfolio.add_lot(lot);
+        portfolio.add_lot(lot.clone());
 
-        // TODO
-        // let total_value = portfolio.calc_total_value(...);
-        // assert_eq!(total_value, 1100.0); // 0 cash + 1100 current value
+        let mut market_data = MarketData::new();
+        let date = NaiveDate::from_ymd_opt(2021, 1, 1).expect("Invalid date");
+        market_data.add_price(date, "MSFT".to_string(), 100.0);
+
+        let total_value = portfolio.calc_total_value(&market_data, date);
+        assert_eq!(total_value, 1100.0); // 1000 cash + 1 lot of MSFT at 100
+
+        portfolio.add_lot(lot.clone());
+        let total_value = portfolio.calc_total_value(&market_data, date);
+        assert_eq!(total_value, 1200.0); // 1000 cash + 2 lots of MSFT at 100
     }
 
     #[test]
