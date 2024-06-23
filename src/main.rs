@@ -17,6 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let market_data = MarketData::new().with_prices_file(&config.prices_file)?;
 
     let portfolio = Portfolio::from_cash(config.init_cash);
+
     let context = Context {
         config,
         portfolio,
