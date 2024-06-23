@@ -198,6 +198,7 @@ impl Portfolio {
 
     pub fn buy_lot(&mut self, lot: Lot) {
         // Check if there is enough cash to buy the lot
+        // no margin trading at the moment
         if lot.shares * lot.purchase_price > self.cash {
             return;
         }
