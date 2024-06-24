@@ -1,7 +1,8 @@
-use chrono::NaiveDate;
 use std::collections::HashMap;
 use csv::ReaderBuilder;
 use pyo3::prelude::*;
+use chrono::{NaiveDate, Datelike};
+use pyo3::types::{PyDate, PyDict, PyFunction, PyTuple};
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::error::Error;
@@ -23,6 +24,7 @@ fn hello() -> PyResult<String> {
 #[pymodule]
 fn _lowlevel(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(hello, m)?)?;
+    m.add_class::<Dumbbt>()?;
     Ok(())
 }
 
@@ -256,7 +258,60 @@ Rebalancer
 -------------------------------------------------------------------------
 */
 
+/*
+-------------------------------------------------------------------------
+Dumbbt
+-------------------------------------------------------------------------
+*/
 
+#[pyclass]
+struct Dumbbt {
+    portfolio: Portfolio,
+    market_data: MarketData,
+}
+
+#[pymethods]
+impl Dumbbt {
+    #[new]
+    fn new() -> Self {
+        Dumbbt {
+            portfolio: Portfolio::from_cash(0.0),
+            market_data: MarketData::new(),
+        }
+    }
+
+    fn run(&self, start_date: &str, end_date: &str, py: Python, strategy: Py<PyFunction>) -> PyResult<Py<PyDict>> {
+        let start_date = NaiveDate::parse_from_str(start_date, "%Y-%m-%d").map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
+        let end_date = NaiveDate::parse_from_str(end_date, "%Y-%m-%d").map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
+
+        let mut current_date = start_date;
+        let mut results: HashMap<String, Vec<f64>> = HashMap::new();
+        while current_date <= end_date {
+            if !self.market_data.has_prices_on_date(current_date) {
+                current_date = current_date.succ_opt().unwrap();
+                continue;
+            }
+
+            let py_date = PyDate::new(py, current_date.year(), current_date.month() as u8, current_date.day() as u8)?;
+
+            if let Err(e) = strategy.call1(py, PyTuple::new(py, &[py_date])) {
+                return Err(e);
+            }
+            results.insert(current_date.to_string(), vec![1.0]);
+
+            current_date = current_date.succ_opt().unwrap();
+        }
+
+        // Convert the Rust HashMap to a Python dictionary
+        let py_results = PyDict::new(py);
+        for (key, values) in results {
+            let py_values = values.iter().map(|v| v.into_py(py)).collect::<Vec<_>>();
+            py_results.set_item(key, py_values)?;
+        }
+
+        Ok(py_results.into())
+    }
+}
 
 /*
 -------------------------------------------------------------------------
