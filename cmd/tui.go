@@ -2,15 +2,13 @@ package main
 
 import (
 	"context"
-	"database/sql"
-	_ "embed"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 	"time"
 
-	"dumbfi/db"
+	"dumbfi/internal/database"
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -19,20 +17,8 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-// TODO startcopied from main.go
-type PortfolioData struct {
-	Cash      float64   `json:"cash"`
-	Timestamp time.Time `json:"timestamp"`
-}
-
-//go:embed schema.sql
-var ddl string
-
+// Styles
 var (
-	queries *db.Queries
-	dbConn  *sql.DB
-
-	// Styles
 	docStyle = lipgloss.NewStyle().Margin(1, 2)
 
 	titleStyle = lipgloss.NewStyle().
@@ -43,15 +29,12 @@ var (
 
 	errorStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FF0000"))
-
-	successStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#00FF00"))
 )
 
 type model struct {
 	table         table.Model
 	textInput     textinput.Model
-	portfolioData []PortfolioData
+	portfolioData []database.PortfolioData
 	err           error
 	message       string
 	isAdding      bool
@@ -198,30 +181,28 @@ func (m model) handleAddEntry() (tea.Model, tea.Cmd) {
 }
 
 // Commands and messages
-type fetchDataMsg []PortfolioData
+type fetchDataMsg []database.PortfolioData
 type errMsg error
 
 func fetchDataCmd() tea.Msg {
-	entries, err := queries.GetAllPortfolios(context.Background())
+	entries, err := database.GetAllPortfolios(context.Background())
 	if err != nil {
 		return errMsg(err)
 	}
 
-	// Convert to PortfolioData format
-	var response []PortfolioData
-	for _, entry := range entries {
-		response = append(response, PortfolioData{
-			Cash:      entry.Cash,
-			Timestamp: entry.Timestamp,
-		})
-	}
-
-	return fetchDataMsg(response)
+	return fetchDataMsg(entries)
 }
 
 func addEntryCmd(cash float64) tea.Cmd {
 	return func() tea.Msg {
-		_, err := queries.CreatePortfolio(context.Background(), db.CreatePortfolioParams{
+		ctx := context.Background()
+		dbConn, err := database.InitDB()
+		if err != nil {
+			return errMsg(err)
+		}
+		defer dbConn.Close()
+		queries := database.New(dbConn)
+		_, err = queries.CreatePortfolio(ctx, database.CreatePortfolioParams{
 			Cash:      cash,
 			Timestamp: time.Now(),
 		})
@@ -233,26 +214,12 @@ func addEntryCmd(cash float64) tea.Cmd {
 }
 
 func main() {
-	// Initialize SQLite database (reusing logic from main.go)
-	var err error
-	dbConn, err = sql.Open("sqlite", "./dumbfi.db?_busy_timeout=5000&_journal_mode=WAL")
+	// Initialize SQLite database
+	dbConn, err := database.InitDB()
 	if err != nil {
-		log.Fatal("Error opening database:", err)
+		log.Fatal("Error initializing database:", err)
 	}
 	defer dbConn.Close()
-
-	// Configure connection pool
-	dbConn.SetMaxOpenConns(1)
-	dbConn.SetMaxIdleConns(1)
-	dbConn.SetConnMaxLifetime(time.Hour)
-
-	// Create tables
-	if _, err := dbConn.ExecContext(context.Background(), ddl); err != nil {
-		log.Fatal("Error creating tables:", err)
-	}
-
-	// Create queries instance
-	queries = db.New(dbConn)
 
 	// Run the TUI
 	p := tea.NewProgram(initialModel())
