@@ -2,67 +2,56 @@ package main
 
 import (
 	"context"
-	"embed"
-	"encoding/json"
-	"html/template"
+	"fmt"
 	"log"
 	"net/http"
+	"os/signal"
+	"syscall"
+	"time"
 
-	"dumbfi/internal/database"
+	"dumbfi/internal/server"
 )
 
-//go:embed ui/*
-var content embed.FS
+func gracefulShutdown(apiServer *http.Server, done chan bool) {
+	// Create context that listens for the interrupt signal from the OS.
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	// Listen for the interrupt signal.
+	<-ctx.Done()
+
+	log.Println("shutting down gracefully, press Ctrl+C again to force")
+
+	// The context is used to inform the server it has 5 seconds to finish
+	// the request it is currently handling
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := apiServer.Shutdown(ctx); err != nil {
+		log.Printf("Server forced to shutdown with error: %v", err)
+	}
+
+	log.Println("Server exiting")
+
+	// Notify the main goroutine that the shutdown is complete
+	done <- true
+}
 
 func main() {
-	ctx := context.Background()
 
-	// Initialize SQLite database
-	dbConn, err := database.InitDB()
-	if err != nil {
-		log.Fatal("Error initializing database:", err)
-	}
-	defer dbConn.Close()
+	server := server.NewServer()
 
-	// Initialize with some sample data if the database is empty
-	database.InitializeData(ctx)
+	// Create a done channel to signal when the shutdown is complete
+	done := make(chan bool, 1)
 
-	// Serve static files
-	http.Handle("/static/", http.FileServer(http.FS(content)))
+	// Run graceful shutdown in a separate goroutine
+	go gracefulShutdown(server, done)
 
-	// API endpoints
-	http.HandleFunc("/api/data", handleData)
-
-	// Home Page
-	http.HandleFunc("/", handleHomePage)
-
-	log.Println("Server starting on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
-}
-
-func handleHomePage(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.ParseFS(content, "ui/index.html")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	err := server.ListenAndServe()
+	if err != nil && err != http.ErrServerClosed {
+		panic(fmt.Sprintf("http server error: %s", err))
 	}
 
-	err = tmpl.Execute(w, nil)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-}
-
-func handleData(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-
-	entries, err := database.GetAllPortfolios(ctx)
-	if err != nil {
-		http.Error(w, "Error fetching data", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(entries)
+	// Wait for the graceful shutdown to complete
+	<-done
+	log.Println("Graceful shutdown complete.")
 }
