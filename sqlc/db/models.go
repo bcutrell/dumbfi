@@ -6,18 +6,54 @@ package db
 
 import (
 	"database/sql"
+	"time"
 )
 
-type HealthCheck struct {
-	ID                int64          `json:"id"`
-	Status            string         `json:"status"`
-	Message           sql.NullString `json:"message"`
-	OpenConnections   sql.NullInt64  `json:"open_connections"`
-	InUse             sql.NullInt64  `json:"in_use"`
-	Idle              sql.NullInt64  `json:"idle"`
-	WaitCount         sql.NullInt64  `json:"wait_count"`
-	WaitDuration      sql.NullString `json:"wait_duration"`
-	MaxIdleClosed     sql.NullInt64  `json:"max_idle_closed"`
-	MaxLifetimeClosed sql.NullInt64  `json:"max_lifetime_closed"`
-	CreatedAt         sql.NullTime   `json:"created_at"`
+type Account struct {
+	ID        int64        `json:"id"`
+	Name      string       `json:"name"`
+	Balance   float64      `json:"balance"`
+	CreatedAt sql.NullTime `json:"created_at"`
+	UpdatedAt sql.NullTime `json:"updated_at"`
+}
+
+type Holding struct {
+	ID            int64           `json:"id"`
+	AccountID     int64           `json:"account_id"`
+	Symbol        string          `json:"symbol"`
+	Quantity      int64           `json:"quantity"`
+	AvgPrice      float64         `json:"avg_price"`
+	MarketValue   sql.NullFloat64 `json:"market_value"`
+	UnrealizedPnl sql.NullFloat64 `json:"unrealized_pnl"`
+	CreatedAt     sql.NullTime    `json:"created_at"`
+	UpdatedAt     sql.NullTime    `json:"updated_at"`
+}
+
+type Lot struct {
+	ID                int64        `json:"id"`
+	AccountID         int64        `json:"account_id"`
+	HoldingID         int64        `json:"holding_id"`
+	Symbol            string       `json:"symbol"`
+	Quantity          int64        `json:"quantity"`
+	RemainingQuantity int64        `json:"remaining_quantity"`
+	CostBasis         float64      `json:"cost_basis"`
+	PurchaseDate      time.Time    `json:"purchase_date"`
+	Status            string       `json:"status"`
+	CreatedAt         sql.NullTime `json:"created_at"`
+}
+
+type Trade struct {
+	ID          int64           `json:"id"`
+	AccountID   int64           `json:"account_id"`
+	LotID       sql.NullInt64   `json:"lot_id"`
+	Symbol      string          `json:"symbol"`
+	Side        string          `json:"side"`
+	Quantity    int64           `json:"quantity"`
+	Price       float64         `json:"price"`
+	TradeDate   time.Time       `json:"trade_date"`
+	Strategy    string          `json:"strategy"`
+	Commission  sql.NullFloat64 `json:"commission"`
+	RealizedPnl sql.NullFloat64 `json:"realized_pnl"`
+	Notes       sql.NullString  `json:"notes"`
+	CreatedAt   sql.NullTime    `json:"created_at"`
 }
