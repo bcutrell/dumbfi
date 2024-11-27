@@ -9,9 +9,34 @@ import (
 )
 
 type Querier interface {
-	CreateHealthCheck(ctx context.Context, arg CreateHealthCheckParams) (HealthCheck, error)
-	GetHealthChecks(ctx context.Context, limit int64) ([]HealthCheck, error)
-	GetLatestHealthCheck(ctx context.Context) (HealthCheck, error)
+	CreateAccount(ctx context.Context, arg CreateAccountParams) (Account, error)
+	CreateLot(ctx context.Context, arg CreateLotParams) (Lot, error)
+	CreateTrade(ctx context.Context, arg CreateTradeParams) (Trade, error)
+	DeleteAccount(ctx context.Context, id int64) error
+	DeleteHolding(ctx context.Context, id int64) error
+	DeleteLot(ctx context.Context, id int64) error
+	DeleteTrade(ctx context.Context, id int64) error
+	GetAccount(ctx context.Context, id int64) (Account, error)
+	GetAccountPerformance(ctx context.Context, id int64) (GetAccountPerformanceRow, error)
+	GetHolding(ctx context.Context, id int64) (Holding, error)
+	GetHoldingBySymbol(ctx context.Context, arg GetHoldingBySymbolParams) (Holding, error)
+	GetLot(ctx context.Context, id int64) (Lot, error)
+	GetLotsByFIFO(ctx context.Context, arg GetLotsByFIFOParams) ([]Lot, error)
+	GetLotsByLIFO(ctx context.Context, arg GetLotsByLIFOParams) ([]Lot, error)
+	GetSymbolPerformance(ctx context.Context, arg GetSymbolPerformanceParams) (GetSymbolPerformanceRow, error)
+	GetTrade(ctx context.Context, id int64) (Trade, error)
+	GetTradesByDateRange(ctx context.Context, accountID int64) ([]Trade, error)
+	ListAccountHoldings(ctx context.Context, accountID int64) ([]ListAccountHoldingsRow, error)
+	ListAccountLots(ctx context.Context, accountID int64) ([]ListAccountLotsRow, error)
+	ListAccountTrades(ctx context.Context, accountID int64) ([]ListAccountTradesRow, error)
+	ListAccounts(ctx context.Context) ([]Account, error)
+	ListHoldingLots(ctx context.Context, holdingID int64) ([]Lot, error)
+	ListSymbolTrades(ctx context.Context, arg ListSymbolTradesParams) ([]Trade, error)
+	UpdateAccountBalance(ctx context.Context, arg UpdateAccountBalanceParams) (Account, error)
+	UpdateHolding(ctx context.Context, arg UpdateHoldingParams) (Holding, error)
+	UpdateHoldingMarketValue(ctx context.Context, arg UpdateHoldingMarketValueParams) (Holding, error)
+	UpdateLotStatus(ctx context.Context, arg UpdateLotStatusParams) (Lot, error)
+	UpsertHolding(ctx context.Context, arg UpsertHoldingParams) (Holding, error)
 }
 
 var _ Querier = (*Queries)(nil)
