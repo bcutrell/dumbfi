@@ -17,10 +17,6 @@ type Backtest struct {
 
 func NewBacktest(db *database.DB, initialCash float64) (*Backtest, error) {
 	ctx := context.Background()
-	// db, err := database.New()
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to create database connection: %w", err)
-	// }
 
 	// Create a new account for this backtest
 	account, err := db.CreateAccount(ctx, models.CreateAccountParams{
@@ -36,4 +32,13 @@ func NewBacktest(db *database.DB, initialCash float64) (*Backtest, error) {
 		db:      db,
 		Account: account,
 	}, nil
+}
+
+func NewBacktestWithDefaultDB(initialCash float64) (*Backtest, error) {
+	db, err := database.New()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create database connection: %w", err)
+	}
+
+	return NewBacktest(db, initialCash)
 }
