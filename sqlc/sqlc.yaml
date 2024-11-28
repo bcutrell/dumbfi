@@ -5,7 +5,7 @@ sql:
     schema: "schema/"
     gen:
       go:
-        package: "db"
-        out: "db"
+        package: "models"
+        out: "models"
         emit_interface: true
         emit_json_tags: true

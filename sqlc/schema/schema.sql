@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS accounts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    balance DECIMAL(20,2) NOT NULL,  -- available cash balance
+    cash DECIMAL(20,2) NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS holdings (
 );
 
 -- Tax lots track individual purchase lots for tax purposes
-CREATE TABLE IF NOT EXISTS lots (
+CREATE TABLE IF NOT EXISTS tax_lots (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     account_id INTEGER NOT NULL,
     holding_id INTEGER NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS lots (
 CREATE TABLE IF NOT EXISTS trades (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     account_id INTEGER NOT NULL,
-    lot_id INTEGER,                  -- NULL for sells
+    tax_lot_id INTEGER NOT NULL,
     symbol TEXT NOT NULL,
     side TEXT NOT NULL,              -- 'buy' or 'sell'
     quantity INTEGER NOT NULL,
@@ -53,13 +53,13 @@ CREATE TABLE IF NOT EXISTS trades (
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (account_id) REFERENCES accounts(id),
-    FOREIGN KEY (lot_id) REFERENCES lots(id)
+    FOREIGN KEY (tax_lot_id) REFERENCES tax_lots(id)
 );
 
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_holdings_account ON holdings(account_id);
-CREATE INDEX IF NOT EXISTS idx_lots_account ON lots(account_id);
-CREATE INDEX IF NOT EXISTS idx_lots_holding ON lots(holding_id);
+CREATE INDEX IF NOT EXISTS idx_tax_lots_account ON tax_lots(account_id);
+CREATE INDEX IF NOT EXISTS idx_tax_lots_holding ON tax_lots(holding_id);
 CREATE INDEX IF NOT EXISTS idx_trades_account ON trades(account_id);
 CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol);
-CREATE INDEX IF NOT EXISTS idx_trades_lot ON trades(lot_id);
+CREATE INDEX IF NOT EXISTS idx_trades_tax_lot ON trades(tax_lot_id);

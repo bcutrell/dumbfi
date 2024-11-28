@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.27.0
 
-package db
+package models
 
 import (
 	"context"
@@ -10,32 +10,32 @@ import (
 
 type Querier interface {
 	CreateAccount(ctx context.Context, arg CreateAccountParams) (Account, error)
-	CreateLot(ctx context.Context, arg CreateLotParams) (Lot, error)
+	CreateLot(ctx context.Context, arg CreateLotParams) (TaxLot, error)
 	CreateTrade(ctx context.Context, arg CreateTradeParams) (Trade, error)
 	DeleteAccount(ctx context.Context, id int64) error
 	DeleteHolding(ctx context.Context, id int64) error
-	DeleteLot(ctx context.Context, id int64) error
+	DeleteTaxLot(ctx context.Context, id int64) error
 	DeleteTrade(ctx context.Context, id int64) error
 	GetAccount(ctx context.Context, id int64) (Account, error)
 	GetAccountPerformance(ctx context.Context, id int64) (GetAccountPerformanceRow, error)
 	GetHolding(ctx context.Context, id int64) (Holding, error)
 	GetHoldingBySymbol(ctx context.Context, arg GetHoldingBySymbolParams) (Holding, error)
-	GetLot(ctx context.Context, id int64) (Lot, error)
-	GetLotsByFIFO(ctx context.Context, arg GetLotsByFIFOParams) ([]Lot, error)
-	GetLotsByLIFO(ctx context.Context, arg GetLotsByLIFOParams) ([]Lot, error)
+	GetLot(ctx context.Context, id int64) (TaxLot, error)
 	GetSymbolPerformance(ctx context.Context, arg GetSymbolPerformanceParams) (GetSymbolPerformanceRow, error)
+	GetTaxLotsByFIFO(ctx context.Context, arg GetTaxLotsByFIFOParams) ([]TaxLot, error)
+	GetTaxLotsByLIFO(ctx context.Context, arg GetTaxLotsByLIFOParams) ([]TaxLot, error)
 	GetTrade(ctx context.Context, id int64) (Trade, error)
 	GetTradesByDateRange(ctx context.Context, accountID int64) ([]Trade, error)
 	ListAccountHoldings(ctx context.Context, accountID int64) ([]ListAccountHoldingsRow, error)
-	ListAccountLots(ctx context.Context, accountID int64) ([]ListAccountLotsRow, error)
+	ListAccountTaxLots(ctx context.Context, accountID int64) ([]ListAccountTaxLotsRow, error)
 	ListAccountTrades(ctx context.Context, accountID int64) ([]ListAccountTradesRow, error)
 	ListAccounts(ctx context.Context) ([]Account, error)
-	ListHoldingLots(ctx context.Context, holdingID int64) ([]Lot, error)
+	ListHoldingTaxLots(ctx context.Context, holdingID int64) ([]TaxLot, error)
 	ListSymbolTrades(ctx context.Context, arg ListSymbolTradesParams) ([]Trade, error)
-	UpdateAccountBalance(ctx context.Context, arg UpdateAccountBalanceParams) (Account, error)
+	UpdateAccountCash(ctx context.Context, arg UpdateAccountCashParams) (Account, error)
 	UpdateHolding(ctx context.Context, arg UpdateHoldingParams) (Holding, error)
 	UpdateHoldingMarketValue(ctx context.Context, arg UpdateHoldingMarketValueParams) (Holding, error)
-	UpdateLotStatus(ctx context.Context, arg UpdateLotStatusParams) (Lot, error)
+	UpdateTaxLotstatus(ctx context.Context, arg UpdateTaxLotstatusParams) (TaxLot, error)
 	UpsertHolding(ctx context.Context, arg UpsertHoldingParams) (Holding, error)
 }
 
