@@ -3,7 +3,7 @@
 //   sqlc v1.27.0
 // source: query.sql
 
-package db
+package models
 
 import (
 	"context"
@@ -14,22 +14,22 @@ import (
 const createAccount = `-- name: CreateAccount :one
 INSERT INTO accounts (
     name,
-    balance
-) VALUES (?, ?) RETURNING id, name, balance, created_at, updated_at
+    cash
+) VALUES (?, ?) RETURNING id, name, cash, created_at, updated_at
 `
 
 type CreateAccountParams struct {
-	Name    string  `json:"name"`
-	Balance float64 `json:"balance"`
+	Name string  `json:"name"`
+	Cash float64 `json:"cash"`
 }
 
 func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (Account, error) {
-	row := q.db.QueryRowContext(ctx, createAccount, arg.Name, arg.Balance)
+	row := q.db.QueryRowContext(ctx, createAccount, arg.Name, arg.Cash)
 	var i Account
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.Balance,
+		&i.Cash,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -37,7 +37,7 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (A
 }
 
 const createLot = `-- name: CreateLot :one
-INSERT INTO lots (
+INSERT INTO tax_lots (
     account_id,
     holding_id,
     symbol,
@@ -60,7 +60,7 @@ type CreateLotParams struct {
 	Status            string    `json:"status"`
 }
 
-func (q *Queries) CreateLot(ctx context.Context, arg CreateLotParams) (Lot, error) {
+func (q *Queries) CreateLot(ctx context.Context, arg CreateLotParams) (TaxLot, error) {
 	row := q.db.QueryRowContext(ctx, createLot,
 		arg.AccountID,
 		arg.HoldingID,
@@ -71,7 +71,7 @@ func (q *Queries) CreateLot(ctx context.Context, arg CreateLotParams) (Lot, erro
 		arg.PurchaseDate,
 		arg.Status,
 	)
-	var i Lot
+	var i TaxLot
 	err := row.Scan(
 		&i.ID,
 		&i.AccountID,
@@ -90,7 +90,7 @@ func (q *Queries) CreateLot(ctx context.Context, arg CreateLotParams) (Lot, erro
 const createTrade = `-- name: CreateTrade :one
 INSERT INTO trades (
     account_id,
-    lot_id,
+    tax_lot_id,
     symbol,
     side,
     quantity,
@@ -100,12 +100,12 @@ INSERT INTO trades (
     commission,
     realized_pnl,
     notes
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, account_id, lot_id, symbol, side, quantity, price, trade_date, strategy, commission, realized_pnl, notes, created_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, account_id, tax_lot_id, symbol, side, quantity, price, trade_date, strategy, commission, realized_pnl, notes, created_at
 `
 
 type CreateTradeParams struct {
 	AccountID   int64           `json:"account_id"`
-	LotID       sql.NullInt64   `json:"lot_id"`
+	TaxLotID    int64           `json:"tax_lot_id"`
 	Symbol      string          `json:"symbol"`
 	Side        string          `json:"side"`
 	Quantity    int64           `json:"quantity"`
@@ -120,7 +120,7 @@ type CreateTradeParams struct {
 func (q *Queries) CreateTrade(ctx context.Context, arg CreateTradeParams) (Trade, error) {
 	row := q.db.QueryRowContext(ctx, createTrade,
 		arg.AccountID,
-		arg.LotID,
+		arg.TaxLotID,
 		arg.Symbol,
 		arg.Side,
 		arg.Quantity,
@@ -135,7 +135,7 @@ func (q *Queries) CreateTrade(ctx context.Context, arg CreateTradeParams) (Trade
 	err := row.Scan(
 		&i.ID,
 		&i.AccountID,
-		&i.LotID,
+		&i.TaxLotID,
 		&i.Symbol,
 		&i.Side,
 		&i.Quantity,
@@ -168,12 +168,12 @@ func (q *Queries) DeleteHolding(ctx context.Context, id int64) error {
 	return err
 }
 
-const deleteLot = `-- name: DeleteLot :exec
-DELETE FROM lots WHERE id = ?
+const deleteTaxLot = `-- name: DeleteTaxLot :exec
+DELETE FROM tax_lots WHERE id = ?
 `
 
-func (q *Queries) DeleteLot(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteLot, id)
+func (q *Queries) DeleteTaxLot(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteTaxLot, id)
 	return err
 }
 
@@ -187,7 +187,7 @@ func (q *Queries) DeleteTrade(ctx context.Context, id int64) error {
 }
 
 const getAccount = `-- name: GetAccount :one
-SELECT id, name, balance, created_at, updated_at FROM accounts WHERE id = ?
+SELECT id, name, cash, created_at, updated_at FROM accounts WHERE id = ?
 `
 
 func (q *Queries) GetAccount(ctx context.Context, id int64) (Account, error) {
@@ -196,7 +196,7 @@ func (q *Queries) GetAccount(ctx context.Context, id int64) (Account, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.Balance,
+		&i.Cash,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -207,20 +207,20 @@ const getAccountPerformance = `-- name: GetAccountPerformance :one
 SELECT 
     a.id,
     a.name,
-    a.balance,
+    a.cash,
     COALESCE(SUM(h.market_value), 0) as total_market_value,
     COALESCE(SUM(h.unrealized_pnl), 0) as total_unrealized_pnl,
     COALESCE((SELECT SUM(realized_pnl) FROM trades WHERE account_id = a.id), 0) as total_realized_pnl
 FROM accounts a
 LEFT JOIN holdings h ON h.account_id = a.id
 WHERE a.id = ?
-GROUP BY a.id, a.name, a.balance
+GROUP BY a.id, a.name, a.cash
 `
 
 type GetAccountPerformanceRow struct {
 	ID                 int64       `json:"id"`
 	Name               string      `json:"name"`
-	Balance            float64     `json:"balance"`
+	Cash               float64     `json:"cash"`
 	TotalMarketValue   interface{} `json:"total_market_value"`
 	TotalUnrealizedPnl interface{} `json:"total_unrealized_pnl"`
 	TotalRealizedPnl   interface{} `json:"total_realized_pnl"`
@@ -232,7 +232,7 @@ func (q *Queries) GetAccountPerformance(ctx context.Context, id int64) (GetAccou
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.Balance,
+		&i.Cash,
 		&i.TotalMarketValue,
 		&i.TotalUnrealizedPnl,
 		&i.TotalRealizedPnl,
@@ -289,12 +289,12 @@ func (q *Queries) GetHoldingBySymbol(ctx context.Context, arg GetHoldingBySymbol
 }
 
 const getLot = `-- name: GetLot :one
-SELECT id, account_id, holding_id, symbol, quantity, remaining_quantity, cost_basis, purchase_date, status, created_at FROM lots WHERE id = ?
+SELECT id, account_id, holding_id, symbol, quantity, remaining_quantity, cost_basis, purchase_date, status, created_at FROM tax_lots WHERE id = ?
 `
 
-func (q *Queries) GetLot(ctx context.Context, id int64) (Lot, error) {
+func (q *Queries) GetLot(ctx context.Context, id int64) (TaxLot, error) {
 	row := q.db.QueryRowContext(ctx, getLot, id)
-	var i Lot
+	var i TaxLot
 	err := row.Scan(
 		&i.ID,
 		&i.AccountID,
@@ -308,102 +308,6 @@ func (q *Queries) GetLot(ctx context.Context, id int64) (Lot, error) {
 		&i.CreatedAt,
 	)
 	return i, err
-}
-
-const getLotsByFIFO = `-- name: GetLotsByFIFO :many
-SELECT id, account_id, holding_id, symbol, quantity, remaining_quantity, cost_basis, purchase_date, status, created_at FROM lots
-WHERE account_id = ?
-  AND symbol = ?
-  AND remaining_quantity > 0
-  AND status IN ('open', 'partial')
-ORDER BY purchase_date ASC
-`
-
-type GetLotsByFIFOParams struct {
-	AccountID int64  `json:"account_id"`
-	Symbol    string `json:"symbol"`
-}
-
-func (q *Queries) GetLotsByFIFO(ctx context.Context, arg GetLotsByFIFOParams) ([]Lot, error) {
-	rows, err := q.db.QueryContext(ctx, getLotsByFIFO, arg.AccountID, arg.Symbol)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Lot
-	for rows.Next() {
-		var i Lot
-		if err := rows.Scan(
-			&i.ID,
-			&i.AccountID,
-			&i.HoldingID,
-			&i.Symbol,
-			&i.Quantity,
-			&i.RemainingQuantity,
-			&i.CostBasis,
-			&i.PurchaseDate,
-			&i.Status,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getLotsByLIFO = `-- name: GetLotsByLIFO :many
-SELECT id, account_id, holding_id, symbol, quantity, remaining_quantity, cost_basis, purchase_date, status, created_at FROM lots
-WHERE account_id = ?
-  AND symbol = ?
-  AND remaining_quantity > 0
-  AND status IN ('open', 'partial')
-ORDER BY purchase_date DESC
-`
-
-type GetLotsByLIFOParams struct {
-	AccountID int64  `json:"account_id"`
-	Symbol    string `json:"symbol"`
-}
-
-func (q *Queries) GetLotsByLIFO(ctx context.Context, arg GetLotsByLIFOParams) ([]Lot, error) {
-	rows, err := q.db.QueryContext(ctx, getLotsByLIFO, arg.AccountID, arg.Symbol)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Lot
-	for rows.Next() {
-		var i Lot
-		if err := rows.Scan(
-			&i.ID,
-			&i.AccountID,
-			&i.HoldingID,
-			&i.Symbol,
-			&i.Quantity,
-			&i.RemainingQuantity,
-			&i.CostBasis,
-			&i.PurchaseDate,
-			&i.Status,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const getSymbolPerformance = `-- name: GetSymbolPerformance :one
@@ -450,8 +354,104 @@ func (q *Queries) GetSymbolPerformance(ctx context.Context, arg GetSymbolPerform
 	return i, err
 }
 
+const getTaxLotsByFIFO = `-- name: GetTaxLotsByFIFO :many
+SELECT id, account_id, holding_id, symbol, quantity, remaining_quantity, cost_basis, purchase_date, status, created_at FROM tax_lots
+WHERE account_id = ?
+  AND symbol = ?
+  AND remaining_quantity > 0
+  AND status IN ('open', 'partial')
+ORDER BY purchase_date ASC
+`
+
+type GetTaxLotsByFIFOParams struct {
+	AccountID int64  `json:"account_id"`
+	Symbol    string `json:"symbol"`
+}
+
+func (q *Queries) GetTaxLotsByFIFO(ctx context.Context, arg GetTaxLotsByFIFOParams) ([]TaxLot, error) {
+	rows, err := q.db.QueryContext(ctx, getTaxLotsByFIFO, arg.AccountID, arg.Symbol)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TaxLot
+	for rows.Next() {
+		var i TaxLot
+		if err := rows.Scan(
+			&i.ID,
+			&i.AccountID,
+			&i.HoldingID,
+			&i.Symbol,
+			&i.Quantity,
+			&i.RemainingQuantity,
+			&i.CostBasis,
+			&i.PurchaseDate,
+			&i.Status,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTaxLotsByLIFO = `-- name: GetTaxLotsByLIFO :many
+SELECT id, account_id, holding_id, symbol, quantity, remaining_quantity, cost_basis, purchase_date, status, created_at FROM tax_lots
+WHERE account_id = ?
+  AND symbol = ?
+  AND remaining_quantity > 0
+  AND status IN ('open', 'partial')
+ORDER BY purchase_date DESC
+`
+
+type GetTaxLotsByLIFOParams struct {
+	AccountID int64  `json:"account_id"`
+	Symbol    string `json:"symbol"`
+}
+
+func (q *Queries) GetTaxLotsByLIFO(ctx context.Context, arg GetTaxLotsByLIFOParams) ([]TaxLot, error) {
+	rows, err := q.db.QueryContext(ctx, getTaxLotsByLIFO, arg.AccountID, arg.Symbol)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TaxLot
+	for rows.Next() {
+		var i TaxLot
+		if err := rows.Scan(
+			&i.ID,
+			&i.AccountID,
+			&i.HoldingID,
+			&i.Symbol,
+			&i.Quantity,
+			&i.RemainingQuantity,
+			&i.CostBasis,
+			&i.PurchaseDate,
+			&i.Status,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTrade = `-- name: GetTrade :one
-SELECT id, account_id, lot_id, symbol, side, quantity, price, trade_date, strategy, commission, realized_pnl, notes, created_at FROM trades WHERE id = ?
+SELECT id, account_id, tax_lot_id, symbol, side, quantity, price, trade_date, strategy, commission, realized_pnl, notes, created_at FROM trades WHERE id = ?
 `
 
 func (q *Queries) GetTrade(ctx context.Context, id int64) (Trade, error) {
@@ -460,7 +460,7 @@ func (q *Queries) GetTrade(ctx context.Context, id int64) (Trade, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.AccountID,
-		&i.LotID,
+		&i.TaxLotID,
 		&i.Symbol,
 		&i.Side,
 		&i.Quantity,
@@ -476,7 +476,7 @@ func (q *Queries) GetTrade(ctx context.Context, id int64) (Trade, error) {
 }
 
 const getTradesByDateRange = `-- name: GetTradesByDateRange :many
-SELECT id, account_id, lot_id, symbol, side, quantity, price, trade_date, strategy, commission, realized_pnl, notes, created_at FROM trades
+SELECT id, account_id, tax_lot_id, symbol, side, quantity, price, trade_date, strategy, commission, realized_pnl, notes, created_at FROM trades
 WHERE account_id = ?
   AND trade_date BETWEEN ? AND ?
 ORDER BY trade_date
@@ -494,7 +494,7 @@ func (q *Queries) GetTradesByDateRange(ctx context.Context, accountID int64) ([]
 		if err := rows.Scan(
 			&i.ID,
 			&i.AccountID,
-			&i.LotID,
+			&i.TaxLotID,
 			&i.Symbol,
 			&i.Side,
 			&i.Quantity,
@@ -520,7 +520,7 @@ func (q *Queries) GetTradesByDateRange(ctx context.Context, accountID int64) ([]
 }
 
 const listAccountHoldings = `-- name: ListAccountHoldings :many
-SELECT h.id, h.account_id, h.symbol, h.quantity, h.avg_price, h.market_value, h.unrealized_pnl, h.created_at, h.updated_at, a.name as account_name, a.balance as account_balance
+SELECT h.id, h.account_id, h.symbol, h.quantity, h.avg_price, h.market_value, h.unrealized_pnl, h.created_at, h.updated_at, a.name as account_name, a.cash as account_cash
 FROM holdings h
 JOIN accounts a ON h.account_id = a.id
 WHERE h.account_id = ?
@@ -528,17 +528,17 @@ ORDER BY h.market_value DESC
 `
 
 type ListAccountHoldingsRow struct {
-	ID             int64           `json:"id"`
-	AccountID      int64           `json:"account_id"`
-	Symbol         string          `json:"symbol"`
-	Quantity       int64           `json:"quantity"`
-	AvgPrice       float64         `json:"avg_price"`
-	MarketValue    sql.NullFloat64 `json:"market_value"`
-	UnrealizedPnl  sql.NullFloat64 `json:"unrealized_pnl"`
-	CreatedAt      sql.NullTime    `json:"created_at"`
-	UpdatedAt      sql.NullTime    `json:"updated_at"`
-	AccountName    string          `json:"account_name"`
-	AccountBalance float64         `json:"account_balance"`
+	ID            int64           `json:"id"`
+	AccountID     int64           `json:"account_id"`
+	Symbol        string          `json:"symbol"`
+	Quantity      int64           `json:"quantity"`
+	AvgPrice      float64         `json:"avg_price"`
+	MarketValue   sql.NullFloat64 `json:"market_value"`
+	UnrealizedPnl sql.NullFloat64 `json:"unrealized_pnl"`
+	CreatedAt     sql.NullTime    `json:"created_at"`
+	UpdatedAt     sql.NullTime    `json:"updated_at"`
+	AccountName   string          `json:"account_name"`
+	AccountCash   float64         `json:"account_cash"`
 }
 
 func (q *Queries) ListAccountHoldings(ctx context.Context, accountID int64) ([]ListAccountHoldingsRow, error) {
@@ -561,7 +561,7 @@ func (q *Queries) ListAccountHoldings(ctx context.Context, accountID int64) ([]L
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.AccountName,
-			&i.AccountBalance,
+			&i.AccountCash,
 		); err != nil {
 			return nil, err
 		}
@@ -576,15 +576,15 @@ func (q *Queries) ListAccountHoldings(ctx context.Context, accountID int64) ([]L
 	return items, nil
 }
 
-const listAccountLots = `-- name: ListAccountLots :many
+const listAccountTaxLots = `-- name: ListAccountTaxLots :many
 SELECT l.id, l.account_id, l.holding_id, l.symbol, l.quantity, l.remaining_quantity, l.cost_basis, l.purchase_date, l.status, l.created_at, h.avg_price as holding_avg_price, h.market_value as holding_market_value
-FROM lots l
+FROM tax_lots l
 JOIN holdings h ON l.holding_id = h.id
 WHERE l.account_id = ?
 ORDER BY l.purchase_date
 `
 
-type ListAccountLotsRow struct {
+type ListAccountTaxLotsRow struct {
 	ID                 int64           `json:"id"`
 	AccountID          int64           `json:"account_id"`
 	HoldingID          int64           `json:"holding_id"`
@@ -599,15 +599,15 @@ type ListAccountLotsRow struct {
 	HoldingMarketValue sql.NullFloat64 `json:"holding_market_value"`
 }
 
-func (q *Queries) ListAccountLots(ctx context.Context, accountID int64) ([]ListAccountLotsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listAccountLots, accountID)
+func (q *Queries) ListAccountTaxLots(ctx context.Context, accountID int64) ([]ListAccountTaxLotsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listAccountTaxLots, accountID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListAccountLotsRow
+	var items []ListAccountTaxLotsRow
 	for rows.Next() {
-		var i ListAccountLotsRow
+		var i ListAccountTaxLotsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.AccountID,
@@ -636,29 +636,29 @@ func (q *Queries) ListAccountLots(ctx context.Context, accountID int64) ([]ListA
 }
 
 const listAccountTrades = `-- name: ListAccountTrades :many
-SELECT t.id, t.account_id, t.lot_id, t.symbol, t.side, t.quantity, t.price, t.trade_date, t.strategy, t.commission, t.realized_pnl, t.notes, t.created_at, l.cost_basis as lot_cost_basis, l.purchase_date as lot_purchase_date
+SELECT t.id, t.account_id, t.tax_lot_id, t.symbol, t.side, t.quantity, t.price, t.trade_date, t.strategy, t.commission, t.realized_pnl, t.notes, t.created_at, l.cost_basis as tax_lot_cost_basis, l.purchase_date as tax_lot_purchase_date
 FROM trades t
-LEFT JOIN lots l ON t.lot_id = l.id
+LEFT JOIN tax_lots l ON t.lot_id = l.id
 WHERE t.account_id = ?
 ORDER BY t.trade_date DESC
 `
 
 type ListAccountTradesRow struct {
-	ID              int64           `json:"id"`
-	AccountID       int64           `json:"account_id"`
-	LotID           sql.NullInt64   `json:"lot_id"`
-	Symbol          string          `json:"symbol"`
-	Side            string          `json:"side"`
-	Quantity        int64           `json:"quantity"`
-	Price           float64         `json:"price"`
-	TradeDate       time.Time       `json:"trade_date"`
-	Strategy        string          `json:"strategy"`
-	Commission      sql.NullFloat64 `json:"commission"`
-	RealizedPnl     sql.NullFloat64 `json:"realized_pnl"`
-	Notes           sql.NullString  `json:"notes"`
-	CreatedAt       sql.NullTime    `json:"created_at"`
-	LotCostBasis    sql.NullFloat64 `json:"lot_cost_basis"`
-	LotPurchaseDate sql.NullTime    `json:"lot_purchase_date"`
+	ID                 int64           `json:"id"`
+	AccountID          int64           `json:"account_id"`
+	TaxLotID           int64           `json:"tax_lot_id"`
+	Symbol             string          `json:"symbol"`
+	Side               string          `json:"side"`
+	Quantity           int64           `json:"quantity"`
+	Price              float64         `json:"price"`
+	TradeDate          time.Time       `json:"trade_date"`
+	Strategy           string          `json:"strategy"`
+	Commission         sql.NullFloat64 `json:"commission"`
+	RealizedPnl        sql.NullFloat64 `json:"realized_pnl"`
+	Notes              sql.NullString  `json:"notes"`
+	CreatedAt          sql.NullTime    `json:"created_at"`
+	TaxLotCostBasis    sql.NullFloat64 `json:"tax_lot_cost_basis"`
+	TaxLotPurchaseDate sql.NullTime    `json:"tax_lot_purchase_date"`
 }
 
 func (q *Queries) ListAccountTrades(ctx context.Context, accountID int64) ([]ListAccountTradesRow, error) {
@@ -673,7 +673,7 @@ func (q *Queries) ListAccountTrades(ctx context.Context, accountID int64) ([]Lis
 		if err := rows.Scan(
 			&i.ID,
 			&i.AccountID,
-			&i.LotID,
+			&i.TaxLotID,
 			&i.Symbol,
 			&i.Side,
 			&i.Quantity,
@@ -684,8 +684,8 @@ func (q *Queries) ListAccountTrades(ctx context.Context, accountID int64) ([]Lis
 			&i.RealizedPnl,
 			&i.Notes,
 			&i.CreatedAt,
-			&i.LotCostBasis,
-			&i.LotPurchaseDate,
+			&i.TaxLotCostBasis,
+			&i.TaxLotPurchaseDate,
 		); err != nil {
 			return nil, err
 		}
@@ -701,7 +701,7 @@ func (q *Queries) ListAccountTrades(ctx context.Context, accountID int64) ([]Lis
 }
 
 const listAccounts = `-- name: ListAccounts :many
-SELECT id, name, balance, created_at, updated_at FROM accounts ORDER BY id
+SELECT id, name, cash, created_at, updated_at FROM accounts ORDER BY id
 `
 
 func (q *Queries) ListAccounts(ctx context.Context) ([]Account, error) {
@@ -716,7 +716,7 @@ func (q *Queries) ListAccounts(ctx context.Context) ([]Account, error) {
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.Balance,
+			&i.Cash,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -733,21 +733,21 @@ func (q *Queries) ListAccounts(ctx context.Context) ([]Account, error) {
 	return items, nil
 }
 
-const listHoldingLots = `-- name: ListHoldingLots :many
-SELECT id, account_id, holding_id, symbol, quantity, remaining_quantity, cost_basis, purchase_date, status, created_at FROM lots 
+const listHoldingTaxLots = `-- name: ListHoldingTaxLots :many
+SELECT id, account_id, holding_id, symbol, quantity, remaining_quantity, cost_basis, purchase_date, status, created_at FROM tax_lots 
 WHERE holding_id = ? 
 ORDER BY purchase_date
 `
 
-func (q *Queries) ListHoldingLots(ctx context.Context, holdingID int64) ([]Lot, error) {
-	rows, err := q.db.QueryContext(ctx, listHoldingLots, holdingID)
+func (q *Queries) ListHoldingTaxLots(ctx context.Context, holdingID int64) ([]TaxLot, error) {
+	rows, err := q.db.QueryContext(ctx, listHoldingTaxLots, holdingID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Lot
+	var items []TaxLot
 	for rows.Next() {
-		var i Lot
+		var i TaxLot
 		if err := rows.Scan(
 			&i.ID,
 			&i.AccountID,
@@ -774,7 +774,7 @@ func (q *Queries) ListHoldingLots(ctx context.Context, holdingID int64) ([]Lot, 
 }
 
 const listSymbolTrades = `-- name: ListSymbolTrades :many
-SELECT id, account_id, lot_id, symbol, side, quantity, price, trade_date, strategy, commission, realized_pnl, notes, created_at FROM trades 
+SELECT id, account_id, tax_lot_id, symbol, side, quantity, price, trade_date, strategy, commission, realized_pnl, notes, created_at FROM trades 
 WHERE account_id = ? AND symbol = ?
 ORDER BY trade_date DESC
 `
@@ -796,7 +796,7 @@ func (q *Queries) ListSymbolTrades(ctx context.Context, arg ListSymbolTradesPara
 		if err := rows.Scan(
 			&i.ID,
 			&i.AccountID,
-			&i.LotID,
+			&i.TaxLotID,
 			&i.Symbol,
 			&i.Side,
 			&i.Quantity,
@@ -821,26 +821,26 @@ func (q *Queries) ListSymbolTrades(ctx context.Context, arg ListSymbolTradesPara
 	return items, nil
 }
 
-const updateAccountBalance = `-- name: UpdateAccountBalance :one
+const updateAccountCash = `-- name: UpdateAccountCash :one
 UPDATE accounts 
-SET balance = balance + ?,
+SET cash = cash + ?,
     updated_at = CURRENT_TIMESTAMP
 WHERE id = ? 
-RETURNING id, name, balance, created_at, updated_at
+RETURNING id, name, cash, created_at, updated_at
 `
 
-type UpdateAccountBalanceParams struct {
-	Balance float64 `json:"balance"`
-	ID      int64   `json:"id"`
+type UpdateAccountCashParams struct {
+	Cash float64 `json:"cash"`
+	ID   int64   `json:"id"`
 }
 
-func (q *Queries) UpdateAccountBalance(ctx context.Context, arg UpdateAccountBalanceParams) (Account, error) {
-	row := q.db.QueryRowContext(ctx, updateAccountBalance, arg.Balance, arg.ID)
+func (q *Queries) UpdateAccountCash(ctx context.Context, arg UpdateAccountCashParams) (Account, error) {
+	row := q.db.QueryRowContext(ctx, updateAccountCash, arg.Cash, arg.ID)
 	var i Account
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.Balance,
+		&i.Cash,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -920,23 +920,23 @@ func (q *Queries) UpdateHoldingMarketValue(ctx context.Context, arg UpdateHoldin
 	return i, err
 }
 
-const updateLotStatus = `-- name: UpdateLotStatus :one
-UPDATE lots
+const updateTaxLotstatus = `-- name: UpdateTaxLotstatus :one
+UPDATE tax_lots
 SET status = ?,
     remaining_quantity = ?
 WHERE id = ?
 RETURNING id, account_id, holding_id, symbol, quantity, remaining_quantity, cost_basis, purchase_date, status, created_at
 `
 
-type UpdateLotStatusParams struct {
+type UpdateTaxLotstatusParams struct {
 	Status            string `json:"status"`
 	RemainingQuantity int64  `json:"remaining_quantity"`
 	ID                int64  `json:"id"`
 }
 
-func (q *Queries) UpdateLotStatus(ctx context.Context, arg UpdateLotStatusParams) (Lot, error) {
-	row := q.db.QueryRowContext(ctx, updateLotStatus, arg.Status, arg.RemainingQuantity, arg.ID)
-	var i Lot
+func (q *Queries) UpdateTaxLotstatus(ctx context.Context, arg UpdateTaxLotstatusParams) (TaxLot, error) {
+	row := q.db.QueryRowContext(ctx, updateTaxLotstatus, arg.Status, arg.RemainingQuantity, arg.ID)
+	var i TaxLot
 	err := row.Scan(
 		&i.ID,
 		&i.AccountID,

@@ -2,7 +2,7 @@ package database
 
 import (
 	"database/sql"
-	"dumbfi/sqlc/db"
+	"dumbfi/sqlc/models"
 	"fmt"
 	"os"
 
@@ -11,11 +11,11 @@ import (
 
 type DB struct {
 	*sql.DB
-	*db.Queries
+	*models.Queries
 }
 
 func New() (*DB, error) {
-	dbPath := os.Getenv("BLUEPRINT_DB_URL")
+	dbPath := os.Getenv("DUMBFI_DB_URL")
 	if dbPath == "" {
 		dbPath = "local.db"
 	}
@@ -34,7 +34,7 @@ func New() (*DB, error) {
 		return nil, fmt.Errorf("table creation failed: %w", err)
 	}
 
-	queries := db.New(sqlDB)
+	queries := models.New(sqlDB)
 
 	return &DB{
 		DB:      sqlDB,
@@ -50,4 +50,37 @@ func createTables(db *sql.DB) error {
 
 	_, err = db.Exec(string(schema))
 	return err
+}
+
+func createTablesFromPath(db *sql.DB, path string) error {
+	schema, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to read schema: %w", err)
+	}
+
+	_, err = db.Exec(string(schema))
+	return err
+}
+
+func NewTestDB(schemaPath string) (*DB, func(), error) {
+	sqlDB, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to open test db: %w", err)
+	}
+
+	// Create tables
+	if err := createTablesFromPath(sqlDB, schemaPath); err != nil {
+		return nil, nil, fmt.Errorf("table creation failed: %w", err)
+	}
+
+	queries := models.New(sqlDB)
+
+	cleanup := func() {
+		sqlDB.Close()
+	}
+
+	return &DB{
+		DB:      sqlDB,
+		Queries: queries,
+	}, cleanup, nil
 }

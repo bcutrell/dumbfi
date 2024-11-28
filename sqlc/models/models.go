@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.27.0
 
-package db
+package models
 
 import (
 	"database/sql"
@@ -12,7 +12,7 @@ import (
 type Account struct {
 	ID        int64        `json:"id"`
 	Name      string       `json:"name"`
-	Balance   float64      `json:"balance"`
+	Cash      float64      `json:"cash"`
 	CreatedAt sql.NullTime `json:"created_at"`
 	UpdatedAt sql.NullTime `json:"updated_at"`
 }
@@ -29,7 +29,7 @@ type Holding struct {
 	UpdatedAt     sql.NullTime    `json:"updated_at"`
 }
 
-type Lot struct {
+type TaxLot struct {
 	ID                int64        `json:"id"`
 	AccountID         int64        `json:"account_id"`
 	HoldingID         int64        `json:"holding_id"`
@@ -45,7 +45,7 @@ type Lot struct {
 type Trade struct {
 	ID          int64           `json:"id"`
 	AccountID   int64           `json:"account_id"`
-	LotID       sql.NullInt64   `json:"lot_id"`
+	TaxLotID    int64           `json:"tax_lot_id"`
 	Symbol      string          `json:"symbol"`
 	Side        string          `json:"side"`
 	Quantity    int64           `json:"quantity"`
