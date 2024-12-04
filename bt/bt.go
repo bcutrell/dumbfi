@@ -2,8 +2,8 @@ package bt
 
 import (
 	"context"
-	"dumbfi/internal/database"  // DB wrapper
-	models "dumbfi/sqlc/models" // sqlc code
+	"dumbfi/internal/database"
+	models "dumbfi/sqlc/models"
 	"fmt"
 	"time"
 )
@@ -15,12 +15,18 @@ type Backtest struct {
 	TradeHistory []models.Trade
 }
 
-func NewBacktest(db *database.DB, initialCash float64) (*Backtest, error) {
+// NewBacktest creates a new backtest with a custom name
+func NewBacktest(db *database.DB, initialCash float64, name string) (*Backtest, error) {
 	ctx := context.Background()
+
+	// If no name is provided, use the timestamp-based name
+	if name == "" {
+		name = fmt.Sprintf("Backtest_%s", time.Now().Format("2006-01-02"))
+	}
 
 	// Create a new account for this backtest
 	account, err := db.CreateAccount(ctx, models.CreateAccountParams{
-		Name: fmt.Sprintf("Backtest_%s", time.Now().Format("2006-01-02")),
+		Name: name,
 		Cash: initialCash,
 	})
 	if err != nil {
@@ -34,11 +40,15 @@ func NewBacktest(db *database.DB, initialCash float64) (*Backtest, error) {
 	}, nil
 }
 
-func NewBacktestWithDefaultDB(initialCash float64) (*Backtest, error) {
+func NewBacktestWithDefaultDB(initialCash float64, name string) (*Backtest, error) {
 	db, err := database.New()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create database connection: %w", err)
 	}
 
-	return NewBacktest(db, initialCash)
+	return NewBacktest(db, initialCash, name)
+}
+
+func NewBacktestWithTimestamp(db *database.DB, initialCash float64) (*Backtest, error) {
+	return NewBacktest(db, initialCash, "")
 }
