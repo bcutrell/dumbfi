@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -9,6 +10,8 @@ import (
 	"log"
 	"strconv"
 	"strings"
+
+	utils "dumbfi/utils"
 )
 
 const logo = `
@@ -40,50 +43,6 @@ type model struct {
 	err       error
 }
 
-func formatNumber(s string) string {
-	// Remove existing formatting
-	s = strings.ReplaceAll(s, "$", "")
-	s = strings.ReplaceAll(s, ",", "")
-
-	if s == "" || s == "." {
-		return "$"
-	}
-
-	// Split on decimal point if exists
-	parts := strings.Split(s, ".")
-	whole := parts[0]
-
-	// Format the whole number part with commas
-	if len(whole) > 3 {
-		offset := len(whole) % 3
-		if offset == 0 {
-			offset = 3
-		}
-		formatted := whole[:offset]
-		for i := offset; i < len(whole); i += 3 {
-			formatted += "," + whole[i:i+3]
-		}
-		whole = formatted
-	}
-
-	// Add dollar sign
-	result := "$" + whole
-
-	// Add decimal part if exists
-	if len(parts) > 1 {
-		result += "." + parts[1]
-	}
-
-	return result
-}
-
-func unformatNumber(s string) string {
-	// Remove formatting for internal storage/validation
-	s = strings.ReplaceAll(s, "$", "")
-	s = strings.ReplaceAll(s, ",", "")
-	return s
-}
-
 func initialModel() model {
 	ti := textinput.New()
 	ti.Placeholder = "$10,000"
@@ -93,13 +52,13 @@ func initialModel() model {
 
 	// Set validation for numbers and decimal point only
 	ti.Validate = func(s string) error {
-		raw := unformatNumber(s)
+		raw := utils.UnformatNumber(s)
 		if raw == "" || raw == "." {
 			return nil
 		}
 		// Allow only one decimal point
 		if strings.Count(raw, ".") > 1 {
-			return fmt.Errorf("invalid number format")
+			return fmt.Errorf("only one decimal point allowed")
 		}
 		// Check if all other characters are digits
 		for _, r := range strings.ReplaceAll(raw, ".", "") {
@@ -131,7 +90,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyEnter:
 			// Get the raw number value
-			rawValue := unformatNumber(m.textInput.Value())
+			rawValue := utils.UnformatNumber(m.textInput.Value())
 			if rawValue != "" {
 				// number TODO pass raw number to backtest
 				if val, err := strconv.ParseFloat(rawValue, 64); err == nil {
@@ -141,11 +100,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
-		default:
-			// Handle backspace specially to maintain the dollar sign
-			if msg.Type == tea.KeyBackspace && m.textInput.Value() == "$" {
-				return m, cmd
+		case tea.KeyBackspace:
+			// Prevent backspace from removing the dollar sign
+			if len(m.textInput.Value()) <= 1 {
+				return m, nil
 			}
+
+			// Handle backspace normally for other cases
+			m.textInput, cmd = m.textInput.Update(msg)
+
+			// Ensure dollar sign is maintained
+			if !strings.HasPrefix(m.textInput.Value(), "$") {
+				m.textInput.SetValue("$" + m.textInput.Value())
+			}
+
+			return m, cmd
 		}
 	case errMsg:
 		m.err = msg
@@ -154,18 +123,53 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	m.textInput, cmd = m.textInput.Update(msg)
 
-	// Format the number after each update
-	if m.textInput.Value() != "" {
-		m.textInput.SetValue(formatNumber(m.textInput.Value()))
+	// Maintain formatting after each update
+	if val := m.textInput.Value(); val != "" {
+		// Store cursor position before formatting
+		cursorPos := m.textInput.Position()
+
+		// Ensure dollar sign is always present
+		if !strings.HasPrefix(val, "$") {
+			val = "$" + val
+			cursorPos++ // Adjust cursor for added dollar sign
+		}
+
+		// Format the number
+		formatted := utils.FormatNumber(val)
+
+		// Calculate the difference in length after formatting
+		lenDiff := len(formatted) - len(val)
+
+		// Set the formatted value
+		m.textInput.SetValue(formatted)
+
+		// Adjust cursor position based on formatting changes
+		newCursorPos := cursorPos + lenDiff
+		if newCursorPos < 1 {
+			newCursorPos = 1
+		}
+		if newCursorPos > len(formatted) {
+			newCursorPos = len(formatted)
+		}
+		m.textInput.SetCursor(newCursorPos)
 	}
 
 	return m, cmd
 }
 
 func (m model) View() string {
-	return fmt.Sprintf(
-		"Enter initial cash balance:\n\n%s\n\n%s",
-		m.textInput.View(),
-		"(esc to quit)",
-	) + "\n"
+	var sb strings.Builder
+
+	sb.WriteString("Enter initial cash balance:\n\n")
+	sb.WriteString(m.textInput.View())
+	sb.WriteString("\n\n")
+
+	// Display validation errors if any
+	if m.err != nil {
+		sb.WriteString("Error")
+	}
+
+	sb.WriteString("(esc to quit)\n")
+
+	return sb.String()
 }
