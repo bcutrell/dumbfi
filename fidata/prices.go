@@ -1,4 +1,4 @@
-package main
+package fidata
 
 import (
 	"encoding/json"
