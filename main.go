@@ -21,9 +21,11 @@ func main() {
 	}
 
 	symbols := []string{"SPY", "AAPL"}
+	startDate := "2024-01-01"
+	endDate := "2024-12-31"
 
 	for _, symbol := range symbols {
-		prices, err := fetchStockData(symbol, apiKey)
+		prices, err := fetchStockData(symbol, apiKey, startDate, endDate)
 		if err != nil {
 			fmt.Printf("Error fetching data for %s: %v\n", symbol, err)
 			continue
@@ -54,16 +56,22 @@ type StockPrice struct {
 	Volume        float64 `json:"volume"`
 }
 
-func fetchStockData(symbol string, apiKey string) ([]StockPrice, error) {
+func fetchStockData(symbol string, apiKey string, startDate string, endDate string) ([]StockPrice, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("API key is missing")
 	}
 
-	// Get start date as January 1, 2024
-	startDate := "2024-01-01"
+	// Validate startDate format
+	_, err := time.Parse("2006-01-02", startDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid startDate format: must be YYYY-MM-DD")
+	}
 
-	// Get current date
-	endDate := time.Now().Format("2006-01-02")
+	// Validate endDate format
+	_, err = time.Parse("2006-01-02", endDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid endDate format: must be YYYY-MM-DD")
+	}
 
 	url := fmt.Sprintf("https://eodhd.com/api/eod/%s?from=%s&to=%s&api_token=%s&fmt=json",
 		symbol, startDate, endDate, apiKey)
