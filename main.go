@@ -12,6 +12,16 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 )
 
+type StockPrice struct {
+	Date          string  `json:"date"`
+	Open          float64 `json:"open"`
+	High          float64 `json:"high"`
+	Low           float64 `json:"low"`
+	Close         float64 `json:"close"`
+	AdjustedClose float64 `json:"adjusted_close"`
+	Volume        float64 `json:"volume"`
+}
+
 func main() {
 	// Get API key from environment variable
 	apiKey := os.Getenv("EODHD_API_KEY")
@@ -30,15 +40,7 @@ func main() {
 			fmt.Printf("Error fetching data for %s: %v\n", symbol, err)
 			continue
 		}
-
-		fmt.Printf("\nPrice data for %s:\n", symbol)
-		fmt.Printf("%-12s %-10s %-10s %-10s %-10s %-10s\n", "Date", "Open", "High", "Low", "Close", "AdjustedClose")
-		fmt.Println(strings.Repeat("-", 60))
-
-		for _, price := range prices {
-			fmt.Printf("%-12s $%-9.2f $%-9.2f $%-9.2f $%-9.2f $%-9.2f\n",
-				price.Date, price.Open, price.High, price.Low, price.Close, price.AdjustedClose)
-		}
+		formatPriceData(symbol, prices)
 	}
 }
 
@@ -46,31 +48,16 @@ func main() {
 // Prices
 // ---------------------------------------------------------------
 
-type StockPrice struct {
-	Date          string  `json:"date"`
-	Open          float64 `json:"open"`
-	High          float64 `json:"high"`
-	Low           float64 `json:"low"`
-	Close         float64 `json:"close"`
-	AdjustedClose float64 `json:"adjusted_close"`
-	Volume        float64 `json:"volume"`
-}
-
 func fetchStockData(symbol string, apiKey string, startDate string, endDate string) ([]StockPrice, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("API key is missing")
 	}
 
-	// Validate startDate format
-	_, err := time.Parse("2006-01-02", startDate)
-	if err != nil {
-		return nil, fmt.Errorf("invalid startDate format: must be YYYY-MM-DD")
+	if err := validateDate(startDate); err != nil {
+		return nil, fmt.Errorf("invalid startDate: %v", err)
 	}
-
-	// Validate endDate format
-	_, err = time.Parse("2006-01-02", endDate)
-	if err != nil {
-		return nil, fmt.Errorf("invalid endDate format: must be YYYY-MM-DD")
+	if err := validateDate(endDate); err != nil {
+		return nil, fmt.Errorf("invalid endDate: %v", err)
 	}
 
 	url := fmt.Sprintf("https://eodhd.com/api/eod/%s?from=%s&to=%s&api_token=%s&fmt=json",
@@ -101,4 +88,25 @@ func fetchStockData(symbol string, apiKey string, startDate string, endDate stri
 	}
 
 	return prices, nil
+}
+
+func formatPriceData(symbol string, prices []StockPrice) {
+	fmt.Printf("\nPrice data for %s:\n", symbol)
+	fmt.Printf("%-12s %-10s %-10s %-10s %-10s %-10s\n",
+		"Date", "Open", "High", "Low", "Close", "AdjustedClose")
+	fmt.Println(strings.Repeat("-", 60))
+
+	for _, price := range prices {
+		fmt.Printf("%-12s $%-9.2f $%-9.2f $%-9.2f $%-9.2f $%-9.2f\n",
+			price.Date, price.Open, price.High, price.Low,
+			price.Close, price.AdjustedClose)
+	}
+}
+
+func validateDate(date string) error {
+	_, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return fmt.Errorf("must be YYYY-MM-DD format")
+	}
+	return nil
 }
