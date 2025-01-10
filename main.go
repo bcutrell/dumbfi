@@ -1,9 +1,5 @@
 package main
 
-// TODO
-// [] Add a function for getting multiple symbols
-// [] Have an object that takes EOD API key and has a function for getting prices
-
 import (
 	"encoding/json"
 	"fmt"
@@ -30,10 +26,6 @@ type EODClient struct {
 	apiKey     string
 	httpClient *http.Client
 }
-
-// ---------------------------------------------------------------
-// Prices
-// ---------------------------------------------------------------
 
 func NewEODClient(apiKey string) *EODClient {
 	return &EODClient{
@@ -126,48 +118,6 @@ func (c *EODClient) fetchEOD(symbol, startDate, endDate string) ([]StockPrice, e
 	if err != nil {
 		return nil, fmt.Errorf("error reading response: %v", err)
 	}
-
-	var prices []StockPrice
-	if err := json.Unmarshal(body, &prices); err != nil {
-		return nil, fmt.Errorf("error parsing JSON: %v", err)
-	}
-
-	return prices, nil
-}
-
-func fetchStockData(symbol string, apiKey string, startDate string, endDate string) ([]StockPrice, error) {
-	if apiKey == "" {
-		return nil, fmt.Errorf("API key is missing")
-	}
-
-	if err := validateDate(startDate); err != nil {
-		return nil, fmt.Errorf("invalid startDate: %v", err)
-	}
-	if err := validateDate(endDate); err != nil {
-		return nil, fmt.Errorf("invalid endDate: %v", err)
-	}
-
-	url := fmt.Sprintf("https://eodhd.com/api/eod/%s?from=%s&to=%s&api_token=%s&fmt=json",
-		symbol, startDate, endDate, apiKey)
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("error making request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error reading response: %v", err)
-	}
-
-	// Print the response body for debugging
-	fmt.Println("Response Body:", string(body))
 
 	var prices []StockPrice
 	if err := json.Unmarshal(body, &prices); err != nil {
