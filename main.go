@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/spf13/cobra"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -152,7 +153,8 @@ func validateDate(date string) error {
 	return nil
 }
 
-func main() {
+func runBacktester(cmd *cobra.Command, args []string) {
+	fmt.Println("Running backtester")
 	apiKey := os.Getenv("EODHD_API_KEY")
 	if apiKey == "" {
 		fmt.Println("Please set EODHD_API_KEY environment variable")
@@ -173,8 +175,18 @@ func main() {
 	for symbol, prices := range results {
 		formatPriceData(symbol, prices)
 	}
+}
 
+func main() {
 	app := pocketbase.New()
+	app.RootCmd.AddCommand(&cobra.Command{
+			Use:   "backtester",
+			Short: "Run backtester",
+			Run: func(cmd *cobra.Command, args []string) {
+				runBacktester(cmd, args)
+			},
+		})
+
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// serves static files from the provided public dir (if exists)
 		se.Router.GET("/{path...}", apis.Static(os.DirFS("./pb_public"), false))
