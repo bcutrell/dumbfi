@@ -3,13 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/spf13/cobra"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/spf13/cobra"
 
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/pocketbase/pocketbase"
@@ -33,7 +34,7 @@ type EODHDClient struct {
 	httpClient *http.Client
 }
 
-func NewEODHDClient(apiKey string) *EODClient {
+func NewEODHDClient(apiKey string) *EODHDClient {
 	return &EODHDClient{
 		apiKey: apiKey,
 		httpClient: &http.Client{
@@ -105,7 +106,7 @@ func (c *EODHDClient) validateInput(symbols []string, startDate, endDate string)
 	return nil
 }
 
-func (c *EODHDClient) fetchEOD(symbol, startDate, endDate string) ([]StockPrice, error) {
+func (c *EODHDClient) fetchEODHD(symbol, startDate, endDate string) ([]StockPrice, error) {
 	url := fmt.Sprintf("https://eodhd.com/api/eod/%s?from=%s&to=%s&api_token=%s&fmt=json",
 		symbol, startDate, endDate, c.apiKey)
 
