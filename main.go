@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/spf13/cobra"
 	"encoding/json"
 	"fmt"
+	"github.com/spf13/cobra"
 	"io"
 	"log"
 	"net/http"
@@ -27,13 +27,14 @@ type StockPrice struct {
 	Volume        float64 `json:"volume"`
 }
 
-type EODClient struct {
+// https://eodhd.com/
+type EODHDClient struct {
 	apiKey     string
 	httpClient *http.Client
 }
 
-func NewEODClient(apiKey string) *EODClient {
-	return &EODClient{
+func NewEODHDClient(apiKey string) *EODClient {
+	return &EODHDClient{
 		apiKey: apiKey,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
@@ -41,7 +42,7 @@ func NewEODClient(apiKey string) *EODClient {
 	}
 }
 
-func (c *EODClient) GetPrices(symbols []string, startDate, endDate string) (map[string][]StockPrice, error) {
+func (c *EODHDClient) GetPrices(symbols []string, startDate, endDate string) (map[string][]StockPrice, error) {
 	if err := c.validateInput(symbols, startDate, endDate); err != nil {
 		return nil, err
 	}
@@ -57,7 +58,7 @@ func (c *EODClient) GetPrices(symbols []string, startDate, endDate string) (map[
 	// Fetch prices concurrently
 	for _, symbol := range symbols {
 		go func(sym string) {
-			prices, err := c.fetchEOD(sym, startDate, endDate)
+			prices, err := c.fetchEODHD(sym, startDate, endDate)
 			resultChan <- struct {
 				symbol string
 				prices []StockPrice
@@ -85,7 +86,7 @@ func (c *EODClient) GetPrices(symbols []string, startDate, endDate string) (map[
 	}
 }
 
-func (c *EODClient) validateInput(symbols []string, startDate, endDate string) error {
+func (c *EODHDClient) validateInput(symbols []string, startDate, endDate string) error {
 	if len(symbols) == 0 {
 		return fmt.Errorf("no symbols provided")
 	}
@@ -104,7 +105,7 @@ func (c *EODClient) validateInput(symbols []string, startDate, endDate string) e
 	return nil
 }
 
-func (c *EODClient) fetchEOD(symbol, startDate, endDate string) ([]StockPrice, error) {
+func (c *EODHDClient) fetchEOD(symbol, startDate, endDate string) ([]StockPrice, error) {
 	url := fmt.Sprintf("https://eodhd.com/api/eod/%s?from=%s&to=%s&api_token=%s&fmt=json",
 		symbol, startDate, endDate, c.apiKey)
 
@@ -155,13 +156,13 @@ func validateDate(date string) error {
 
 func runBacktester(cmd *cobra.Command, args []string) {
 	fmt.Println("Running backtester")
-	apiKey := os.Getenv("EODHD_API_KEY")
+	apiKey := os.Getenv("EODHDHD_API_KEY")
 	if apiKey == "" {
-		fmt.Println("Please set EODHD_API_KEY environment variable")
+		fmt.Println("Please set EODHDHD_API_KEY environment variable")
 		return
 	}
 
-	client := NewEODClient(apiKey)
+	client := NewEODHDClient(apiKey)
 	symbols := []string{"SPY", "AAPL", "MSFT"}
 	startDate := "2024-01-01"
 	endDate := "2024-12-31"
@@ -180,17 +181,16 @@ func runBacktester(cmd *cobra.Command, args []string) {
 func main() {
 	app := pocketbase.New()
 	app.RootCmd.AddCommand(&cobra.Command{
-			Use:   "backtester",
-			Short: "Run backtester",
-			Run: func(cmd *cobra.Command, args []string) {
-				runBacktester(cmd, args)
-			},
-		})
+		Use:   "backtester",
+		Short: "Run backtester",
+		Run: func(cmd *cobra.Command, args []string) {
+			runBacktester(cmd, args)
+		},
+	})
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// serves static files from the provided public dir (if exists)
 		se.Router.GET("/{path...}", apis.Static(os.DirFS("./pb_public"), false))
-
 		return se.Next()
 	})
 
