@@ -18,3 +18,22 @@ vendor/
 .env
 
 pb_data/
+
+# ./ui dependencies
+node_modules/
+**/node_modules/
+
+# ./ui build
+dist/
+**/dist/
+build/
+**/build/
+
+# logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+.npm
