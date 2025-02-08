@@ -1,5 +1,3 @@
-import * as d3 from "d3";
-
 function generateWeightData(
   numDays = 100,
   tickers = ["AAPL", "IBM", "MSFT"],
