@@ -1,5 +1,9 @@
-#app {
-    padding: 20px;
+@charset "utf-8";
+@import url(https://fonts.googleapis.com/css?family=Press+Start+2P);
+
+body {
+    padding: 0 2rem;
+    margin: 0 2rem;
 }
 
 svg {

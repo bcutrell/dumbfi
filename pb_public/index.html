@@ -3,14 +3,62 @@
     <head>
         <title>dumbfi</title>
         <meta charset="UTF-8" />
+        <link
+            href="https://unpkg.com/nes.css@latest/css/nes.min.css"
+            rel="stylesheet"
+        />
+
         <link rel="stylesheet" href="styles.css" />
     </head>
     <body>
         <main>
-            <div id="app"></div>
+            <br />
+            <section class="nes-container">
+                <div id="app"></div>
+            </section>
+            <br />
+            <div class="nes-container with-title is-centered">
+                <p class="title">Container.is-centered</p>
+                <p>Good morning. Thou hast had a good night's sleep, I hope.</p>
+                <progress class="nes-progress" value="90" max="100"></progress>
+            </div>
+            <br />
+
+            <!-- Swapy Example -->
+            <div class="container">
+                <!-- Slot A -->
+                <div data-swapy-slot="a">
+                    <!-- Item A -->
+                    <div data-swapy-item="a">
+                        <div>A</div>
+                    </div>
+                </div>
+
+                <!-- Slot B -->
+                <div data-swapy-slot="b">
+                    <!-- Item B -->
+                    <div data-swapy-item="b">
+                        <div>B</div>
+                    </div>
+                </div>
+
+                <!-- Slot C -->
+                <div data-swapy-slot="c">
+                    <!-- Item C -->
+                    <div data-swapy-item="c">
+                        <div>C</div>
+                    </div>
+                </div>
+            </div>
         </main>
 
+        <script src="https://unpkg.com/swapy/dist/swapy.min.js"></script>
         <script src="https://d3js.org/d3.v7.min.js"></script>
         <script src="script.js"></script>
+        <script>
+            const container = document.querySelector(".container");
+            const swapy = Swapy.createSwapy(container);
+            d3.select(".container");
+        </script>
     </body>
 </html>
