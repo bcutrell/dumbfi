@@ -1,8 +1,6 @@
-package main
+package utils
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestValidateDate(t *testing.T) {
 	tests := []struct {
@@ -18,7 +16,7 @@ func TestValidateDate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateDate(tt.date)
+			err := ValidateDate(tt.date)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("validateDate() error = %v, wantErr %v", err, tt.wantErr)
 			}

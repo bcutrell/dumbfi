@@ -1,4 +1,4 @@
-notes/
+TODO
 
 # Binaries
 *.exe
@@ -39,3 +39,4 @@ yarn-debug.log*
 yarn-error.log*
 
 .npm
+.idea
