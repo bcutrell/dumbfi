@@ -13,24 +13,21 @@
     <body>
         <main>
             <br />
-            <section class="nes-container">
-                <div id="app"></div>
-            </section>
-            <br />
-            <div class="nes-container with-title is-centered">
-                <p class="title">Container.is-centered</p>
-                <p>Good morning. Thou hast had a good night's sleep, I hope.</p>
-                <progress class="nes-progress" value="90" max="100"></progress>
-            </div>
-            <br />
-
             <!-- Swapy Example -->
             <div class="container">
                 <!-- Slot A -->
                 <div data-swapy-slot="a">
                     <!-- Item A -->
                     <div data-swapy-item="a">
-                        <div>A</div>
+                        <div class="nes-container with-title is-centered">
+                            <p class="title">A</p>
+                            <progress
+                                class="nes-progress"
+                                value="90"
+                                max="100"
+                            ></progress>
+                        </div>
+                        <br />
                     </div>
                 </div>
 
@@ -38,7 +35,15 @@
                 <div data-swapy-slot="b">
                     <!-- Item B -->
                     <div data-swapy-item="b">
-                        <div>B</div>
+                        <div class="nes-container with-title is-centered">
+                            <p class="title">B</p>
+                            <progress
+                                class="nes-progress"
+                                value="90"
+                                max="100"
+                            ></progress>
+                        </div>
+                        <br />
                     </div>
                 </div>
 
@@ -46,7 +51,26 @@
                 <div data-swapy-slot="c">
                     <!-- Item C -->
                     <div data-swapy-item="c">
-                        <div>C</div>
+                        <div class="nes-container with-title is-centered">
+                            <p class="title">C</p>
+                            <progress
+                                class="nes-progress"
+                                value="90"
+                                max="100"
+                            ></progress>
+                        </div>
+                        <br />
+                    </div>
+                </div>
+                <!-- Slot D -->
+                <div data-swapy-slot="d">
+                    <!-- Item D -->
+                    <div data-swapy-item="d">
+                        <div class="nes-container with-title is-centered">
+                            <p class="title">Graph</p>
+                            <div id="app"></div>
+                        </div>
+                        <br />
                     </div>
                 </div>
             </div>
@@ -58,7 +82,6 @@
         <script>
             const container = document.querySelector(".container");
             const swapy = Swapy.createSwapy(container);
-            d3.select(".container");
         </script>
     </body>
 </html>
