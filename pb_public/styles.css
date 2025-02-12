@@ -9,3 +9,8 @@ body {
 svg {
     border: 1px solid #ccc;
 }
+
+.ht-100-pct {
+    height: 100%
+}
+
