@@ -1,261 +1,104 @@
-function generateWeightData(
-  numDays = 100,
-  tickers = ["AAPL", "IBM", "MSFT"],
-  startPrice = 100,
-  volatility = 0.02,
-  drift = 0.0005,
-) {
-  const data = [];
-  const prices = {};
+// TODO: DOMPurify
+GridStack.renderCB = function (el, w) {
+  el.innerHTML = w.content;
+};
 
-  tickers.forEach((ticker) => {
-    prices[ticker] = startPrice;
+let children = [
+  {
+      x: 0,
+      y: 0,
+      w: 4,
+      h: 2,
+      content:
+          '<div class="ht-100-pct nes-container with-title is-centered"><p class="title">1</p><p>1</p></div>',
+  },
+  {
+      x: 4,
+      y: 0,
+      w: 4,
+      h: 4,
+      content:
+          '<div class="ht-100-pct nes-container with-title is-centered"><p class="title">2</p><p>2</p></div>',
+  },
+  {
+      x: 8,
+      y: 0,
+      w: 2,
+      h: 2,
+      content:
+          '<div class="ht-100-pct nes-container with-title is-centered"><p class="title">3</p><p>3</p></div>',
+  },
+  {
+      x: 10,
+      y: 0,
+      w: 2,
+      h: 2,
+      content:
+          '<div class="ht-100-pct nes-container with-title is-centered"><p class="title">4</p><p>4</p></div>',
+  },
+  {
+      x: 0,
+      y: 2,
+      w: 2,
+      h: 2,
+      content:
+          '<div class="ht-100-pct nes-container with-title is-centered"><p class="title">5</p><p>5</p></div>',
+  },
+  {
+      x: 2,
+      y: 2,
+      w: 2,
+      h: 4,
+      content:
+          '<div class="ht-100-pct nes-container with-title is-centered"><p class="title">6</p><p>6</p></div>',
+  },
+  {
+      x: 8,
+      y: 2,
+      w: 4,
+      h: 2,
+      content:
+          '<div class="ht-100-pct nes-container with-title is-centered"><p class="title">7</p><p>7</p></div>',
+  },
+  {
+      x: 0,
+      y: 4,
+      w: 2,
+      h: 2,
+      content:
+          '<div class="ht-100-pct nes-container with-title is-centered"><p class="title">8</p><p>8</p></div>',
+  },
+  {
+      x: 4,
+      y: 4,
+      w: 4,
+      h: 2,
+      content:
+          '<div class="ht-100-pct nes-container with-title is-centered"><p class="title">9</p><p>9</p></div>',
+  },
+  {
+      x: 8,
+      y: 4,
+      w: 2,
+      h: 2,
+      content:
+          '<div class="ht-100-pct nes-container with-title is-centered"><p class="title">10</p><p>10</p></div>',
+  },
+  {
+      x: 10,
+      y: 4,
+      w: 2,
+      h: 2,
+      content:
+          '<div class="ht-100-pct nes-container with-title is-centered"><p class="title">11</p><p>11</p></div>',
+  },
+];
+
+let grid = GridStack.init({ cellHeight: 70, children });
+grid.on("added removed change", function (e, items) {
+  let str = "";
+  items.forEach(function (item) {
+      str += " (x,y)=" + item.x + "," + item.y;
   });
-
-  for (let i = 0; i < numDays; i++) {
-    const date = new Date(2024, 0, 1 + i); //  Date object
-    const entry = { date };
-
-    tickers.forEach((ticker) => {
-      const dailyReturn = drift + volatility * (Math.random() * 2 - 1);
-      prices[ticker] *= Math.exp(dailyReturn);
-    });
-
-    const totalValue = Object.values(prices).reduce((sum, p) => sum + p, 0);
-    tickers.forEach((ticker) => {
-      entry[ticker] = parseFloat(
-        ((prices[ticker] / totalValue) * 100).toFixed(2),
-      );
-    });
-
-    data.push(entry);
-  }
-
-  return data;
-}
-
-function createStackedBarChart(data, tickers, containerId) {
-  const width = 800;
-  const height = 400;
-  const margin = { top: 20, right: 30, left: 60, bottom: 40 }; // Increased left margin
-
-  const svg = d3
-    .select(containerId)
-    .append("svg")
-    .attr("width", width)
-    .attr("height", height);
-
-  const x = d3
-    .scaleTime() // Use scaleTime for dates
-    .domain(d3.extent(data, (d) => d.date))
-    .range([margin.left, width - margin.right]);
-
-  const y = d3
-    .scaleLinear()
-    .domain([0, 100])
-    .range([height - margin.bottom, margin.top]);
-
-  const series = d3.stack().keys(tickers)(data);
-
-  const color = d3
-    .scaleOrdinal()
-    .domain(tickers)
-    .range(["#8884d8", "#82ca9d", "#ffc658"]);
-
-  const chartGroup = svg.append("g");
-
-  chartGroup
-    .selectAll("g")
-    .data(series)
-    .join("g")
-    .attr("fill", (d) => color(d.key))
-    .selectAll("rect")
-    .data((d) => d)
-    .join("rect")
-    .attr("x", (d) => x(d.data.date))
-    .attr("y", (d) => y(d[1]))
-    .attr("height", (d) => y(d[0]) - y(d[1]))
-    .attr("width", (d) => {
-      //calculate the width of one bar by subtracting the x position of the next bar from the x position of the current bar
-      const nextDataPoint = data[data.indexOf(d.data) + 1];
-      if (nextDataPoint) {
-        return x(nextDataPoint.date) - x(d.data.date);
-      } else {
-        // For the last bar, estimate width based on the previous difference or a minimum value
-        const prevDataPoint = data[data.indexOf(d.data) - 1];
-        return prevDataPoint ? x(d.data.date) - x(prevDataPoint.date) : 5; // Use a default width if no previous point
-      }
-    });
-
-  const xAxis = d3.axisBottom(x).tickFormat(d3.timeFormat("%b %d")); // Format the date
-  const yAxis = d3.axisLeft(y).ticks(null, "s");
-
-  const xAxisGroup = svg
-    .append("g")
-    .attr("transform", `translate(0,${height - margin.bottom})`)
-    .call(xAxis);
-
-  svg.append("g").attr("transform", `translate(${margin.left},0)`).call(yAxis);
-
-  // Rotate x-axis labels
-  xAxisGroup
-    .selectAll("text")
-    .style("text-anchor", "end")
-    .attr("dx", "-.8em")
-    .attr("dy", ".15em")
-    .attr("transform", "rotate(-45)");
-
-  // Mouseover lines (interaction)
-  const verticalLine = svg
-    .append("line")
-    .attr("stroke", "black")
-    .attr("stroke-width", 1)
-    .style("opacity", 0);
-
-  const horizontalLine = svg
-    .append("line")
-    .attr("stroke", "black")
-    .attr("stroke-width", 1)
-    .style("opacity", 0);
-
-  svg
-    .on("mousemove", function (event) {
-      const [mouseX, mouseY] = d3.pointer(event);
-
-      if (
-        mouseX >= margin.left &&
-        mouseX <= width - margin.right &&
-        mouseY >= margin.top &&
-        mouseY <= height - margin.bottom
-      ) {
-        verticalLine
-          .attr("x1", mouseX)
-          .attr("y1", margin.top)
-          .attr("x2", mouseX)
-          .attr("y2", height - margin.bottom)
-          .style("opacity", 1);
-
-        horizontalLine
-          .attr("x1", margin.left)
-          .attr("y1", mouseY)
-          .attr("x2", width - margin.right)
-          .attr("y2", mouseY)
-          .style("opacity", 1);
-      } else {
-        verticalLine.style("opacity", 0);
-        horizontalLine.style("opacity", 0);
-      }
-    })
-    .on("mouseleave", function () {
-      verticalLine.style("opacity", 0);
-      horizontalLine.style("opacity", 0);
-    });
-
-  // Brush and Zoom
-  const brush = d3
-    .brushX()
-    .extent([
-      [margin.left, 0],
-      [width - margin.right, height - margin.bottom],
-    ])
-    .on("end", brushed);
-
-  const zoom = d3
-    .zoom()
-    .scaleExtent([1, 32]) //  zoom scale
-    .translateExtent([
-      [margin.left, 0],
-      [width - margin.right, height - margin.bottom],
-    ])
-    .extent([
-      [margin.left, 0],
-      [width - margin.right, height - margin.bottom],
-    ])
-    .on("zoom", zoomed);
-
-  //  clip path to prevent bars from going outside the chart area during zoom
-  svg
-    .append("defs")
-    .append("clipPath")
-    .attr("id", "clip")
-    .append("rect")
-    .attr("x", margin.left)
-    .attr("y", margin.top)
-    .attr("width", width - margin.left - margin.right)
-    .attr("height", height - margin.top - margin.bottom);
-
-  chartGroup.attr("clip-path", "url(#clip)");
-
-  const brushGroup = svg.append("g").attr("class", "brush").call(brush);
-
-  function brushed(event) {
-    const selection = event.selection;
-    if (selection) {
-      const [x0, x1] = selection.map(x.invert); // Convert pixel to dates
-      const newXDomain = [x0, x1];
-      x.domain(newXDomain);
-      svg.select(".brush").call(brush.move, null); // Remove brush after zoom
-
-      //recalculate bar width inside brushed function
-      chartGroup
-        .selectAll("rect")
-        .attr("x", (d) => x(d.data.date))
-        .attr("width", (d) => {
-          const nextDataPoint = data[data.indexOf(d.data) + 1];
-          if (nextDataPoint && x(nextDataPoint.date)) {
-            return x(nextDataPoint.date) - x(d.data.date);
-          } else {
-            // For the last bar, estimate width
-            const prevDataPoint = data[data.indexOf(d.data) - 1];
-            return prevDataPoint && x(d.data.date)
-              ? x(d.data.date) - x(prevDataPoint.date)
-              : 5; // Use a default
-          }
-        });
-
-      svg.select(".brush").call(brush.move, null); // Clear the brush
-      svg.call(
-        zoom.transform,
-        d3.zoomIdentity
-          .scale(width / (x.range()[1] - x.range()[0]))
-          .translate(-x.range()[0], 0),
-      );
-    }
-  }
-
-  function zoomed(event) {
-    if (event.sourceEvent && event.sourceEvent.type === "brush") return; // Ignore zoom triggered by brush
-    const newXScale = event.transform.rescaleX(x); // Use the original x scale for date info
-    x.domain(newXScale.domain()); // Update the x-domain
-
-    //recalculate bar width inside zoom function
-    chartGroup
-      .selectAll("rect")
-      .attr("x", (d) => x(d.data.date))
-      .attr("width", (d) => {
-        const nextDataPoint = data[data.indexOf(d.data) + 1];
-        if (nextDataPoint && x(nextDataPoint.date)) {
-          return x(nextDataPoint.date) - x(d.data.date);
-        } else {
-          // For the last bar, estimate width
-          const prevDataPoint = data[data.indexOf(d.data) - 1];
-          return prevDataPoint && x(d.data.date)
-            ? x(d.data.date) - x(prevDataPoint.date)
-            : 5;
-        }
-      });
-
-    xAxisGroup.call(xAxis.scale(newXScale)); // Update axis
-
-    //re-rotate labels
-    xAxisGroup
-      .selectAll("text")
-      .style("text-anchor", "end")
-      .attr("dx", "-.8em")
-      .attr("dy", ".15em")
-      .attr("transform", "rotate(-45)");
-  }
-}
-
-const data = generateWeightData(500, ["AAPL", "IBM", "MSFT"]);
-createStackedBarChart(data, ["AAPL", "IBM", "MSFT"], "#app");
+  console.log(e.type + " " + items.length + " items:" + str);
+});
