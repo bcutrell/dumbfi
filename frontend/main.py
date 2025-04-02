@@ -110,8 +110,7 @@ class App:
         self.fps = fps
         self.bg_color = 0  # Black
 
-        # Initialize Pyxel
-        pyxel.init(self.width, self.height, title="Draggable Graph", fps=self.fps)
+        pyxel.init(self.width, self.height, title="dumbfi", fps=self.fps)
 
         # Create the graph widget
         graph_width = 120
@@ -119,6 +118,9 @@ class App:
         initial_x = (self.width - graph_width) // 2
         initial_y = (self.height - graph_height) // 2
         self.graph_widget = GraphWidget(initial_x, initial_y, graph_width, graph_height)
+
+        # Enable mouse input visibility
+        pyxel.mouse(True)
 
         # Start the app
         pyxel.run(self.update, self.draw)
