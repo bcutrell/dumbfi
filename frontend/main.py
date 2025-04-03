@@ -104,17 +104,20 @@ class GraphWidget:
 
 
 class App:
-    def __init__(self, width=160, height=120, fps=30):
+    def __init__(self, width=160, height=120, fps=30, grid_size=20):
         self.width = width
         self.height = height
         self.fps = fps
         self.bg_color = 0  # Black
+        self.grid_color = 2  # Dark purple
+        self.grid_size = grid_size
+        self.show_grid = True
 
         pyxel.init(self.width, self.height, title="dumbfi", fps=self.fps)
 
         # Create the graph widget
-        graph_width = 120
-        graph_height = 80
+        graph_width = 60
+        graph_height = 20
         initial_x = (self.width - graph_width) // 2
         initial_y = (self.height - graph_height) // 2
         self.graph_widget = GraphWidget(initial_x, initial_y, graph_width, graph_height)
@@ -142,7 +145,12 @@ class App:
         if pyxel.btnr(pyxel.MOUSE_BUTTON_LEFT):
             self.graph_widget.end_drag()
 
-        # Exit on Q or ESC key
+
+        # G key -> Toggle grid visibility
+        if pyxel.btnp(pyxel.KEY_G):
+            self.show_grid = not self.show_grid
+
+        # Q or Escape key -> Quit the application
         if pyxel.btnp(pyxel.KEY_Q) or pyxel.btnp(pyxel.KEY_ESCAPE):
             pyxel.quit()
 
@@ -150,9 +158,18 @@ class App:
         # Clear the screen
         pyxel.cls(self.bg_color)
 
+        # Draw Grid
+        if self.show_grid:
+            self.draw_grid()
+
         # Draw the graph widget
         self.graph_widget.draw()
 
+    def draw_grid(self):
+        # Draw dots at grid intersections
+        for x in range(0, self.width, self.grid_size):
+            for y in range(0, self.height, self.grid_size):
+                pyxel.pset(x, y, self.grid_color)
 
 if __name__ == "__main__":
-    App(width=240, height=180, fps=30)
+    App(width=240, height=180, fps=30, grid_size=10)
