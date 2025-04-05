@@ -60,7 +60,7 @@ def download_stock_data(
             continue
 
         max_retries = 3
-        retry_delay = 5  # seconds
+        retry_delay = 5 # seconds
 
         for attempt in range(max_retries):
             try:
