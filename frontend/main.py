@@ -3,7 +3,7 @@ import random
 from collections import deque
 
 
-class GraphWidget:
+class LineGraphWidget:
     def __init__(self, x, y, width, height, max_points=100, min_value=0, max_value=100):
         # Widget position and size
         self.x = x
@@ -108,43 +108,42 @@ class App:
         self.width = width
         self.height = height
         self.fps = fps
-        self.bg_color = 0  # Black
-        self.grid_color = 2  # Dark purple
         self.grid_size = grid_size
         self.show_grid = True
 
+        self.bg_color = pyxel.COLOR_BLACK
+        self.grid_color = pyxel.COLOR_PURPLE
+
         pyxel.init(self.width, self.height, title="dumbfi", fps=self.fps)
 
-        # Create the graph widget
-        graph_width = 60
-        graph_height = 20
+        # init widgets
+        graph_width = 120
+        graph_height = 80
         initial_x = (self.width - graph_width) // 2
         initial_y = (self.height - graph_height) // 2
-        self.graph_widget = GraphWidget(initial_x, initial_y, graph_width, graph_height)
+        self.line_graph_widget = LineGraphWidget(
+            initial_x, initial_y, graph_width, graph_height
+        )
 
-        # Enable mouse input visibility
         pyxel.mouse(True)
-
-        # Start the app
         pyxel.run(self.update, self.draw)
 
     def update(self):
         # Add a new random data point every few frames
         if pyxel.frame_count % 5 == 0:
-            self.graph_widget.add_data_point(random.randint(0, 100))
+            self.line_graph_widget.add_data_point(random.randint(0, 100))
 
         # Handle mouse interaction for dragging
         if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
-            self.graph_widget.start_drag(pyxel.mouse_x, pyxel.mouse_y)
+            self.line_graph_widget.start_drag(pyxel.mouse_x, pyxel.mouse_y)
 
         if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
-            self.graph_widget.update_drag(
+            self.line_graph_widget.update_drag(
                 pyxel.mouse_x, pyxel.mouse_y, self.width, self.height
             )
 
         if pyxel.btnr(pyxel.MOUSE_BUTTON_LEFT):
-            self.graph_widget.end_drag()
-
+            self.line_graph_widget.end_drag()
 
         # G key -> Toggle grid visibility
         if pyxel.btnp(pyxel.KEY_G):
@@ -160,16 +159,28 @@ class App:
 
         # Draw Grid
         if self.show_grid:
-            self.draw_grid()
+            self.draw_grid_dots()
 
         # Draw the graph widget
-        self.graph_widget.draw()
+        self.line_graph_widget.draw()
 
-    def draw_grid(self):
-        # Draw dots at grid intersections
+    def draw_grid_dots(self):
+        # Draw left and top edges
         for x in range(0, self.width, self.grid_size):
             for y in range(0, self.height, self.grid_size):
                 pyxel.pset(x, y, self.grid_color)
+
+        # Draw right edge
+        for y in range(0, self.height, self.grid_size):
+            pyxel.pset(self.width - 1, y, self.grid_color)
+
+        # Draw bottom edge
+        for x in range(0, self.width, self.grid_size):
+            pyxel.pset(x, self.height - 1, self.grid_color)
+
+        # Draw bottom right corner
+        pyxel.pset(self.width - 1, self.height - 1, self.grid_color)
+
 
 if __name__ == "__main__":
     App(width=240, height=180, fps=30, grid_size=10)
