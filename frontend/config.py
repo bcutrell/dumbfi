@@ -1,0 +1,22 @@
+# Screen
+DEFAULT_WIDTH = 240
+DEFAULT_HEIGHT = 180
+DEFAULT_FPS = 30
+DEFAULT_GRID_SIZE = 10
+
+# Widgets
+WIDGET_MARGIN = 5
+WIDGET_PADDING = 3
+
+# Colors
+COLOR_BG = 0  # Black
+COLOR_GRID = 5  # Dark purple
+COLOR_BORDER = 13  # Light gray
+COLOR_TEXT = 7  # White
+COLOR_WIDGET_BG = 1  # Dark blue
+COLOR_BUTTON_ACTIVE = 11  # Yellow
+COLOR_BUTTON_HOVER = 9  # Orange
+COLOR_BUTTON_INACTIVE = 5  # Dark purple
+COLOR_GRAPH_LINE = 11  # Yellow
+
+# Game Settings
