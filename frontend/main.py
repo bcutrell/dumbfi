@@ -7,6 +7,14 @@ from config import (
     DEFAULT_GRID_SIZE,
     COLOR_BG,
     COLOR_GRID,
+    LINE_GRAPH_WIDTH,
+    LINE_GRAPH_HEIGHT,
+    LINE_GRAPH_INITIAL_X,
+    LINE_GRAPH_INITIAL_Y,
+    BUTTON_WIDTH,
+    BUTTON_HEIGHT,
+    BUTTON_INITIAL_X,
+    BUTTON_INITIAL_Y,
 )
 from widgets import LineGraphWidget, ButtonWidget
 
@@ -30,25 +38,16 @@ class App:
         pyxel.init(self.width, self.height, title="dumbfi", fps=self.fps)
 
         self.widgets = []
-        graph_width = 120
-        graph_height = 80
-        initial_x = (self.width - graph_width) // 2
-        initial_y = (self.height - graph_height) // 2
         self.line_graph_widget = LineGraphWidget(
-            initial_x, initial_y, graph_width, graph_height
+            LINE_GRAPH_INITIAL_X, LINE_GRAPH_INITIAL_Y, LINE_GRAPH_WIDTH, LINE_GRAPH_HEIGHT
         )
         self.widgets.append(self.line_graph_widget)
 
-        # Create and add a rebalance button
-        button_width = 60
-        button_height = 15
-        button_x = self.width - button_width - 10
-        button_y = 10
         self.rebalance_button = ButtonWidget(
-            button_x,
-            button_y,
-            button_width,
-            button_height,
+            BUTTON_INITIAL_X,
+            BUTTON_INITIAL_Y,
+            BUTTON_WIDTH,
+            BUTTON_HEIGHT,
             "Trade",
             self.handle_rebalance,
         )
