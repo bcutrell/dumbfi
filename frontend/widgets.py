@@ -10,6 +10,7 @@ from config import (
     COLOR_GRAPH_LINE,
     WIDGET_MARGIN,
     WIDGET_PADDING,
+    DEFAULT_GRID_SIZE,
 )
 
 import random
@@ -23,12 +24,14 @@ class Widget:
         self.y = y
         self.width = width
         self.height = height
+        self.grid_size = DEFAULT_GRID_SIZE
 
         # Dragging state
         self.draggable = True
         self.dragging = False
         self.drag_offset_x = 0
         self.drag_offset_y = 0
+        self.snap_to_grid = True
 
         # Appearance
         self.border_color = COLOR_BORDER
@@ -82,6 +85,10 @@ class Widget:
         new_x = max(0, min(new_x, screen_width - self.width))
         new_y = max(0, min(new_y, screen_height - self.height))
 
+        if self.snap_to_grid and self.grid_size > 0:
+            new_x = round(new_x / self.grid_size) * self.grid_size
+            new_y = round(new_y / self.grid_size) * self.grid_size
+
         self.update_position(new_x, new_y)
 
     def end_drag(self):
@@ -125,7 +132,6 @@ class ButtonWidget(Widget):
         self.text_color = COLOR_TEXT
         self.padding = WIDGET_PADDING
 
-        # Buttons are draggable by default, but can be fixed
         self.draggable = False
 
     def is_enabled(self):
@@ -159,14 +165,9 @@ class ButtonWidget(Widget):
         self.pressed = False
 
     def update(self):
-        # Update hover state
         self.update_hover(pyxel.mouse_x, pyxel.mouse_y)
-
-        # Handle button press
         if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
             self.handle_click(pyxel.mouse_x, pyxel.mouse_y)
-
-        # Handle button release
         if pyxel.btnr(pyxel.MOUSE_BUTTON_LEFT):
             self.release()
 
@@ -174,7 +175,6 @@ class ButtonWidget(Widget):
         if not self.visible:
             return
 
-        # Determine button color based on state
         if not self.enabled:
             button_color = self.inactive_color
         elif self.pressed:
@@ -229,10 +229,10 @@ class LineGraphWidget(Widget):
         pass
 
     def draw(self):
-        # Draw widget frame (border and background)
+        # Draw border and background
         super().draw()
 
-        # Draw the graph
+        # Draw graph
         if len(self.data_points) > 1:
             # Calculate x step based on number of points
             x_step = self.graph_width / (self.max_points - 1)
@@ -261,5 +261,8 @@ class LineGraphWidget(Widget):
 class TimelineWidget(Widget):
     pass
 
-class Table(Widget):
+class TableWidget(Widget):
+    pass
+
+class InputBoxWidget(Widget):
     pass
