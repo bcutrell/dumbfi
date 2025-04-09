@@ -1,4 +1,6 @@
 import pyxel
+import datetime
+from datetime import timedelta
 
 from config import (
     COLOR_BORDER,
@@ -259,7 +261,57 @@ class LineGraphWidget(Widget):
                 pyxel.line(x1, y1, x2, y2, self.line_color)
 
 class TimelineWidget(Widget):
-    pass
+    def __init__(self, x, y, width, height):
+        super().__init__(x, y, width, height)
+        self.start_date = datetime.date(2024, 1, 1)
+        self.end_date = datetime.date(2024, 12, 31)
+        self.current_date = self.start_date
+        self.days_in_year = (self.end_date - self.start_date).days + 1
+
+        # Timeline properties
+        self.timeline_x = x
+        self.timeline_y = y
+        self.timeline_width = width
+        self.timeline_height = height
+
+    def draw(self):
+        # Calculate progress and position
+        progress = (self.current_date - self.start_date).days / (self.days_in_year - 1)
+        indicator_x = self.timeline_x + int(progress * self.timeline_width)
+        completed_width = int(progress * self.timeline_width)
+        remaining_width = self.timeline_width - completed_width
+        
+        # Draw timeline bar with color change
+        # First draw the border
+        pyxel.rectb(self.timeline_x, self.timeline_y, 
+                   self.timeline_width, self.timeline_height, 5)  # Border
+        
+        # Draw completed portion (green)
+        if completed_width > 0:
+            pyxel.rect(self.timeline_x, self.timeline_y, 
+                      completed_width, self.timeline_height, 11)  # Completed (green)
+        
+        # Draw remaining portion (gray)
+        if remaining_width > 0:
+            pyxel.rect(self.timeline_x + completed_width, self.timeline_y, 
+                      remaining_width, self.timeline_height, 1)  # Remaining (gray)
+        
+        # Draw position indicator
+        pyxel.rect(indicator_x - 2, self.timeline_y - 4, 4, 16, 8)
+        
+        # Draw month markers
+        for month in range(1, 13):
+            month_date = datetime.date(2024, month, 1)
+            month_progress = (month_date - self.start_date).days / (self.days_in_year - 1)
+            month_x = self.timeline_x + int(month_progress * self.timeline_width)
+            
+            # Draw month marker
+            pyxel.line(month_x, self.timeline_y - 4, month_x, self.timeline_y + self.timeline_height + 4, 6)
+            
+            # Draw month label (abbreviated)
+            month_name = month_date.strftime("%b")
+            text_x = month_x - len(month_name) * 2
+            pyxel.text(text_x, self.timeline_y + self.timeline_height + 6, month_name, 7)
 
 class TableWidget(Widget):
     pass

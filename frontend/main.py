@@ -1,4 +1,6 @@
 import pyxel
+import datetime
+from datetime import timedelta
 import random
 from config import (
     DEFAULT_WIDTH,
@@ -16,7 +18,7 @@ from config import (
     BUTTON_INITIAL_X,
     BUTTON_INITIAL_Y,
 )
-from widgets import LineGraphWidget, ButtonWidget
+from widgets import LineGraphWidget, ButtonWidget, TimelineWidget
 
 
 class App:
@@ -35,7 +37,6 @@ class App:
         self.bg_color = COLOR_BG
         self.grid_color = COLOR_GRID
 
-        pyxel.init(self.width, self.height, title="dumbfi", fps=self.fps)
 
         self.widgets = []
         self.line_graph_widget = LineGraphWidget(
@@ -53,11 +54,36 @@ class App:
         )
         self.widgets.append(self.rebalance_button)
 
+        # Timeline (start scratch code)
+        self.is_playing = False
+        self.play_speed = 1 #  days per frame
+        self.play_button = ButtonWidget(10, 30, 60, 15, "Play", self.on_play_pause)
+        self.widgets.append(self.play_button)
+
+        self.timeline_x = 30
+        self.timeline_y = 100
+        self.timeline_width = 260
+        self.timeline_height = 8
+        timeline_widget = TimelineWidget(self.timeline_x, self.timeline_y, self.timeline_width, self.timeline_height)
+        self.widgets.append(timeline_widget)
+        self.start_date = datetime.date(2024, 1, 1)
+        self.end_date = datetime.date(2024, 12, 31)
+        self.current_date = self.start_date
+        self.days_in_year = (self.end_date - self.start_date).days + 1
+        # Timeline (end scratch code)
+
+        pyxel.init(self.width, self.height, title="dumbfi", fps=self.fps)
         pyxel.mouse(True)
         pyxel.run(self.update, self.draw)
 
     def handle_rebalance(self):
         print("Rebalancing portfolio...")
+
+    def on_play_pause(self):
+        """Toggle play/pause state"""
+        self.is_playing = not self.is_playing
+        # Update button text
+        self.play_button.set_text("Pause" if self.is_playing else "Play")
 
     def update(self):
         # Add a new random data point every few frames
