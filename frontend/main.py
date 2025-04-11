@@ -1,6 +1,5 @@
 import pyxel
 import datetime
-from datetime import timedelta
 import random
 from config import (
     DEFAULT_WIDTH,
@@ -37,10 +36,12 @@ class App:
         self.bg_color = COLOR_BG
         self.grid_color = COLOR_GRID
 
-
         self.widgets = []
         self.line_graph_widget = LineGraphWidget(
-            LINE_GRAPH_INITIAL_X, LINE_GRAPH_INITIAL_Y, LINE_GRAPH_WIDTH, LINE_GRAPH_HEIGHT
+            LINE_GRAPH_INITIAL_X,
+            LINE_GRAPH_INITIAL_Y,
+            LINE_GRAPH_WIDTH,
+            LINE_GRAPH_HEIGHT,
         )
         self.widgets.append(self.line_graph_widget)
 
@@ -56,7 +57,7 @@ class App:
 
         # Timeline (start scratch code)
         self.is_playing = False
-        self.play_speed = 1 #  days per frame
+        self.play_speed = 1  #  days per frame
         self.play_button = ButtonWidget(10, 30, 60, 15, "Play", self.on_play_pause)
         self.widgets.append(self.play_button)
 
@@ -64,7 +65,9 @@ class App:
         self.timeline_y = 100
         self.timeline_width = 260
         self.timeline_height = 8
-        timeline_widget = TimelineWidget(self.timeline_x, self.timeline_y, self.timeline_width, self.timeline_height)
+        timeline_widget = TimelineWidget(
+            self.timeline_x, self.timeline_y, self.timeline_width, self.timeline_height
+        )
         self.widgets.append(timeline_widget)
         self.start_date = datetime.date(2024, 1, 1)
         self.end_date = datetime.date(2024, 12, 31)

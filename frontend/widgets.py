@@ -1,6 +1,7 @@
 import pyxel
 import datetime
-from datetime import timedelta
+import random
+from collections import deque
 
 from config import (
     COLOR_BORDER,
@@ -15,8 +16,9 @@ from config import (
     DEFAULT_GRID_SIZE,
 )
 
-import random
-from collections import deque
+# TODO move to constants
+COLOR_HIGHLIGHT = 11
+COLOR_SCROLL_INDICATOR = 8
 
 
 class Widget:
@@ -260,6 +262,7 @@ class LineGraphWidget(Widget):
                 # Draw the line segment
                 pyxel.line(x1, y1, x2, y2, self.line_color)
 
+
 class TimelineWidget(Widget):
     def __init__(self, x, y, width, height):
         super().__init__(x, y, width, height)
@@ -280,41 +283,175 @@ class TimelineWidget(Widget):
         indicator_x = self.timeline_x + int(progress * self.timeline_width)
         completed_width = int(progress * self.timeline_width)
         remaining_width = self.timeline_width - completed_width
-        
+
         # Draw timeline bar with color change
         # First draw the border
-        pyxel.rectb(self.timeline_x, self.timeline_y, 
-                   self.timeline_width, self.timeline_height, 5)  # Border
-        
+        pyxel.rectb(
+            self.timeline_x,
+            self.timeline_y,
+            self.timeline_width,
+            self.timeline_height,
+            5,
+        )  # Border
+
         # Draw completed portion (green)
         if completed_width > 0:
-            pyxel.rect(self.timeline_x, self.timeline_y, 
-                      completed_width, self.timeline_height, 11)  # Completed (green)
-        
+            pyxel.rect(
+                self.timeline_x,
+                self.timeline_y,
+                completed_width,
+                self.timeline_height,
+                11,
+            )  # Completed (green)
+
         # Draw remaining portion (gray)
         if remaining_width > 0:
-            pyxel.rect(self.timeline_x + completed_width, self.timeline_y, 
-                      remaining_width, self.timeline_height, 1)  # Remaining (gray)
-        
+            pyxel.rect(
+                self.timeline_x + completed_width,
+                self.timeline_y,
+                remaining_width,
+                self.timeline_height,
+                1,
+            )  # Remaining (gray)
+
         # Draw position indicator
         pyxel.rect(indicator_x - 2, self.timeline_y - 4, 4, 16, 8)
-        
+
         # Draw month markers
         for month in range(1, 13):
             month_date = datetime.date(2024, month, 1)
-            month_progress = (month_date - self.start_date).days / (self.days_in_year - 1)
+            month_progress = (month_date - self.start_date).days / (
+                self.days_in_year - 1
+            )
             month_x = self.timeline_x + int(month_progress * self.timeline_width)
-            
+
             # Draw month marker
-            pyxel.line(month_x, self.timeline_y - 4, month_x, self.timeline_y + self.timeline_height + 4, 6)
-            
+            pyxel.line(
+                month_x,
+                self.timeline_y - 4,
+                month_x,
+                self.timeline_y + self.timeline_height + 4,
+                6,
+            )
+
             # Draw month label (abbreviated)
             month_name = month_date.strftime("%b")
             text_x = month_x - len(month_name) * 2
-            pyxel.text(text_x, self.timeline_y + self.timeline_height + 6, month_name, 7)
+            pyxel.text(
+                text_x, self.timeline_y + self.timeline_height + 6, month_name, 7
+            )
+
+
+class ScrollableListWidget(Widget):
+    def __init__(self, x, y, width, height, positions):
+        super().__init__(x, y, width, height)
+
+        # Calculate percentages
+        total_value = sum(value for _, value in positions)
+        self.position_percentages = [
+            (name, value / total_value * 100) for name, value in positions
+        ]
+
+        # Scrolling state
+        self.scroll_y = 0
+        self.max_scroll = max(0, len(positions) * 10 - (self.content_height - 20))
+        self.title = "POSITIONS"
+
+    def update(self):
+        # Scroll up/down with arrow keys
+        if pyxel.btn(pyxel.KEY_UP):
+            self.scroll_y = max(0, self.scroll_y - 2)
+        if pyxel.btn(pyxel.KEY_DOWN):
+            self.scroll_y = min(self.max_scroll, self.scroll_y + 2)
+
+        # Scroll with mouse wheel when mouse is over widget
+        if self.is_point_inside(pyxel.mouse_x, pyxel.mouse_y):
+            self.scroll_y = max(
+                0, min(self.max_scroll, self.scroll_y - pyxel.mouse_wheel * 5)
+            )
+
+    def draw(self):
+        super().draw()
+
+        # Draw title
+        pyxel.text(self.content_x, self.content_y, self.title, COLOR_TEXT)
+        pyxel.line(
+            self.content_x,
+            self.content_y + 10,
+            self.content_x + self.content_width - 10,
+            self.content_y + 10,
+            COLOR_BORDER,
+        )
+
+        # Draw positions in scrollable area
+        content_start_y = self.content_y + 15
+        available_height = self.content_height - 20
+
+        for i, (name, percentage) in enumerate(self.position_percentages):
+            y_pos = content_start_y + i * 10 - self.scroll_y
+
+            # Only draw visible items
+            if content_start_y <= y_pos < content_start_y + available_height:
+                pyxel.text(self.content_x, y_pos, f"{name}", COLOR_TEXT)
+                pyxel.text(
+                    self.content_x + 45, y_pos, f"{percentage:.1f}%", COLOR_HIGHLIGHT
+                )
+
+        # Draw scrollability indicators if needed
+        if self.max_scroll > 0:
+            # Show up arrow to indicate scrollability
+            if self.scroll_y > 0:
+                pyxel.tri(
+                    self.x + self.width - 10,
+                    self.content_y + 15,
+                    self.x + self.width - 15,
+                    self.content_y + 20,
+                    self.x + self.width - 5,
+                    self.content_y + 20,
+                    COLOR_SCROLL_INDICATOR,
+                )
+
+            # Show down arrow to indicate scrollability
+            if self.scroll_y < self.max_scroll:
+                pyxel.tri(
+                    self.x + self.width - 10,
+                    self.content_y + self.content_height - 5,
+                    self.x + self.width - 15,
+                    self.content_y + self.content_height - 10,
+                    self.x + self.width - 5,
+                    self.content_y + self.content_height - 10,
+                    COLOR_SCROLL_INDICATOR,
+                )
+
+
+class TextBoxWidget(Widget):
+    def __init__(self, x, y, width, height, total_aum):
+        super().__init__(x, y, width, height)
+        self.total_aum = total_aum
+        self.title = "TOTAL AUM"
+
+    def update(self):
+        pass
+
+    def draw(self):
+        super().draw()
+
+        # Draw title
+        pyxel.text(self.content_x, self.content_y, self.title, COLOR_TEXT)
+
+        # Format AUM with commas
+        formatted_aum = "${:,.0f}".format(self.total_aum)
+
+        # Center the AUM text
+        aum_x = self.x + (self.width // 2) - (len(formatted_aum) * 2)
+        aum_y = self.y + (self.height // 2) + 5
+
+        pyxel.text(aum_x, aum_y, formatted_aum, COLOR_HIGHLIGHT)
+
 
 class TableWidget(Widget):
     pass
+
 
 class InputBoxWidget(Widget):
     pass
