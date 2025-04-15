@@ -17,7 +17,7 @@ from config import (
     BUTTON_INITIAL_X,
     BUTTON_INITIAL_Y,
 )
-from widgets import LineGraphWidget, ButtonWidget, TimelineWidget
+from widgets import LineGraphWidget, ButtonWidget, TimelineWidget, ScrollableListWidget
 
 
 class App:
@@ -74,6 +74,26 @@ class App:
         self.current_date = self.start_date
         self.days_in_year = (self.end_date - self.start_date).days + 1
         # Timeline (end scratch code)
+
+        # Scrollabe list (start scratch code)
+        positions = [
+            ("AAPL", 200000),
+            ("BTC", 200000),
+            ("IBM", 600000),
+            ("TSLA", 50000),
+            ("MSFT", 75000),
+            ("AMZN", 30000),
+            ("GOOG", 45000),
+        ]
+        positions_widget = ScrollableListWidget(
+            10,
+            10,
+            85,
+            75,
+            positions,
+        )
+        self.widgets.append(positions_widget)
+        # Scrollabe list (end scratch code)
 
         pyxel.init(self.width, self.height, title="dumbfi", fps=self.fps)
         pyxel.mouse(True)
