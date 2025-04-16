@@ -2,23 +2,7 @@ import pyxel
 import datetime
 import random
 from collections import deque
-
-from config import (
-    COLOR_BORDER,
-    COLOR_WIDGET_BG,
-    COLOR_BUTTON_ACTIVE,
-    COLOR_BUTTON_HOVER,
-    COLOR_BUTTON_INACTIVE,
-    COLOR_TEXT,
-    COLOR_GRAPH_LINE,
-    WIDGET_MARGIN,
-    WIDGET_PADDING,
-    DEFAULT_GRID_SIZE,
-)
-
-# TODO move to constants
-COLOR_HIGHLIGHT = 11
-COLOR_SCROLL_INDICATOR = 8
+import config
 
 
 class Widget:
@@ -28,7 +12,7 @@ class Widget:
         self.y = y
         self.width = width
         self.height = height
-        self.grid_size = DEFAULT_GRID_SIZE
+        self.grid_size = config.SCREEN["grid_size"]
 
         # Dragging state
         self.draggable = True
@@ -37,12 +21,10 @@ class Widget:
         self.drag_offset_y = 0
         self.snap_to_grid = True
 
-        # Appearance
-        self.border_color = COLOR_BORDER
-        self.bg_color = COLOR_WIDGET_BG
-        self.margin = WIDGET_MARGIN
-
-        # Visibility
+        # Styles
+        self.border_color = config.COLORS["border"]
+        self.bg_color = config.COLORS["widget_background"]
+        self.margin = config.WIDGETS["margin"]
         self.visible = True
 
         # Content area (inside margin)
@@ -60,7 +42,6 @@ class Widget:
     def update_position(self, new_x, new_y):
         delta_x = new_x - self.x
         delta_y = new_y - self.y
-
         self.x = new_x
         self.y = new_y
         self.content_x += delta_x

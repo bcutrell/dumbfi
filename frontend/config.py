@@ -1,34 +1,72 @@
-# Screen
-DEFAULT_WIDTH = 240
-DEFAULT_HEIGHT = 180
-DEFAULT_FPS = 30
-DEFAULT_GRID_SIZE = 10
+"""
+config.py
 
+Color references:
+    pub const DEFAULT_COLORS: [Rgb24; NUM_COLORS as usize] = [
+        0x000000, 0x2b335f, 0x7e2072, 0x19959c, 0x8b4852, 0x395c98, 0xa9c1ff, 0xeeeeee, //
+        0xd4186c, 0xd38441, 0xe9c35b, 0x70c6a9, 0x7696de, 0xa3a3a3, 0xFF9798, 0xedc7b0,
+    ];
+    pub const COLOR_BLACK: Color = 0;
+    pub const COLOR_NAVY: Color = 1;
+    pub const COLOR_PURPLE: Color = 2;
+    pub const COLOR_GREEN: Color = 3;
+    pub const COLOR_BROWN: Color = 4;
+    pub const COLOR_DARK_BLUE: Color = 5;
+    pub const COLOR_LIGHT_BLUE: Color = 6;
+    pub const COLOR_WHITE: Color = 7;
+    pub const COLOR_RED: Color = 8;
+    pub const COLOR_ORANGE: Color = 9;
+    pub const COLOR_YELLOW: Color = 10;
+    pub const COLOR_LIME: Color = 11;
+    pub const COLOR_CYAN: Color = 12;
+    pub const COLOR_GRAY: Color = 13;
+    pub const COLOR_PINK: Color = 14;
+    pub const COLOR_PEACH: Color = 15;
+"""
+
+#
+# General
+#
+SCREEN = {
+    "width": 240,
+    "height": 180,
+    "fps": 30,
+    "grid_size": 10,
+    "show_grid": True,
+}
+
+COLORS = {
+    "background": 0,  # Black
+    "grid": 5,  # Dark purple
+    "border": 13,  # Light gray
+    "text": 7,  # White
+    "widget_background": 1,  # Dark blue
+    "button_active": 11,  # Yellow
+    "button_hover": 9,  # Orange
+    "button_inactive": 5,  # Dark purple
+    "graph_line": 11,  # Yellow,
+}
+
+#
 # Widgets
-WIDGET_MARGIN = 5
-WIDGET_PADDING = 3
+#
+TOTAL_VALUE_LINE_GRAPH = {
+    "width": 120,
+    "height": 80,
+    "initial_x": (SCREEN["width"] - 120) // 2,
+    "initial_y": (SCREEN["height"] - 80) // 2,
+}
 
-# Colors
-COLOR_BG = 0  # Black
-COLOR_GRID = 5  # Dark purple
-COLOR_BORDER = 13  # Light gray
-COLOR_TEXT = 7  # White
-COLOR_WIDGET_BG = 1  # Dark blue
-COLOR_BUTTON_ACTIVE = 11  # Yellow
-COLOR_BUTTON_HOVER = 9  # Orange
-COLOR_BUTTON_INACTIVE = 5  # Dark purple
-COLOR_GRAPH_LINE = 11  # Yellow
+REBALANCE_BUTTON = {
+    "width": 60,
+    "height": 15,
+    "initial_x": SCREEN["width"] - 60 - 10,
+    "initial_y": 10,
+}
 
-# Line Graph Widget
-LINE_GRAPH_WIDTH = 120
-LINE_GRAPH_HEIGHT = 80
-LINE_GRAPH_INITIAL_X = (DEFAULT_WIDTH - LINE_GRAPH_WIDTH) // 2
-LINE_GRAPH_INITIAL_Y = (DEFAULT_HEIGHT - LINE_GRAPH_HEIGHT) // 2
-
-# Button Widget
-BUTTON_WIDTH = 60
-BUTTON_HEIGHT = 15
-BUTTON_INITIAL_X = DEFAULT_WIDTH - BUTTON_WIDTH - 10
-BUTTON_INITIAL_Y = 10
-
-# Game Settings
+WIDGETS = {
+    "margin": 5,
+    "padding": 3,
+    "total_value_line_graph": TOTAL_VALUE_LINE_GRAPH,
+    "trade_button": REBALANCE_BUTTON,
+}
