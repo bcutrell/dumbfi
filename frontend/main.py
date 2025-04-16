@@ -1,57 +1,27 @@
 import pyxel
 import datetime
 import random
-from config import (
-    DEFAULT_WIDTH,
-    DEFAULT_HEIGHT,
-    DEFAULT_FPS,
-    DEFAULT_GRID_SIZE,
-    COLOR_BG,
-    COLOR_GRID,
-    LINE_GRAPH_WIDTH,
-    LINE_GRAPH_HEIGHT,
-    LINE_GRAPH_INITIAL_X,
-    LINE_GRAPH_INITIAL_Y,
-    BUTTON_WIDTH,
-    BUTTON_HEIGHT,
-    BUTTON_INITIAL_X,
-    BUTTON_INITIAL_Y,
-)
+import config
 from widgets import LineGraphWidget, ButtonWidget, TimelineWidget, ScrollableListWidget
 
 
 class App:
-    def __init__(
-        self,
-        width=DEFAULT_WIDTH,
-        height=DEFAULT_HEIGHT,
-        fps=DEFAULT_FPS,
-        grid_size=DEFAULT_GRID_SIZE,
-    ):
-        self.width = width
-        self.height = height
-        self.fps = fps
-        self.grid_size = grid_size
-        self.show_grid = True
-        self.bg_color = COLOR_BG
-        self.grid_color = COLOR_GRID
+    def __init__(self):
+        self.width = config.SCREEN["width"]
+        self.height = config.SCREEN["height"]
+        self.fps = config.SCREEN["fps"]
+        self.grid_size = config.SCREEN["grid_size"]
+        self.show_grid = config.SCREEN["show_grid"]
+        self.bg_color = config.COLORS["background"]
+        self.grid_color = config.COLORS["grid"]
 
         self.widgets = []
-        self.line_graph_widget = LineGraphWidget(
-            LINE_GRAPH_INITIAL_X,
-            LINE_GRAPH_INITIAL_Y,
-            LINE_GRAPH_WIDTH,
-            LINE_GRAPH_HEIGHT,
+        self.total_value_line_graph = LineGraphWidget(
+            config.WIDGETS["total_value_line_graph"]
         )
-        self.widgets.append(self.line_graph_widget)
-
+        self.widgets.append(self.total_value_line_graph)
         self.rebalance_button = ButtonWidget(
-            BUTTON_INITIAL_X,
-            BUTTON_INITIAL_Y,
-            BUTTON_WIDTH,
-            BUTTON_HEIGHT,
-            "Trade",
-            self.handle_rebalance,
+            "Rebalance", self.handle_rebalance, config.WIDGETS["rebalance_button"]
         )
         self.widgets.append(self.rebalance_button)
 
