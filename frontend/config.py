@@ -1,72 +1,141 @@
-"""
-config.py
-
-Color references:
-    pub const DEFAULT_COLORS: [Rgb24; NUM_COLORS as usize] = [
-        0x000000, 0x2b335f, 0x7e2072, 0x19959c, 0x8b4852, 0x395c98, 0xa9c1ff, 0xeeeeee, //
-        0xd4186c, 0xd38441, 0xe9c35b, 0x70c6a9, 0x7696de, 0xa3a3a3, 0xFF9798, 0xedc7b0,
-    ];
-    pub const COLOR_BLACK: Color = 0;
-    pub const COLOR_NAVY: Color = 1;
-    pub const COLOR_PURPLE: Color = 2;
-    pub const COLOR_GREEN: Color = 3;
-    pub const COLOR_BROWN: Color = 4;
-    pub const COLOR_DARK_BLUE: Color = 5;
-    pub const COLOR_LIGHT_BLUE: Color = 6;
-    pub const COLOR_WHITE: Color = 7;
-    pub const COLOR_RED: Color = 8;
-    pub const COLOR_ORANGE: Color = 9;
-    pub const COLOR_YELLOW: Color = 10;
-    pub const COLOR_LIME: Color = 11;
-    pub const COLOR_CYAN: Color = 12;
-    pub const COLOR_GRAY: Color = 13;
-    pub const COLOR_PINK: Color = 14;
-    pub const COLOR_PEACH: Color = 15;
-"""
+#
+# Screen settings
+#
+SCREEN_WIDTH = 240
+SCREEN_HEIGHT = 180
+SCREEN_FPS = 30
+GRID_SIZE = 10
+SHOW_GRID = True
 
 #
-# General
+# Color palette (standard Pyxel palette)
 #
-SCREEN = {
-    "width": 240,
-    "height": 180,
-    "fps": 30,
-    "grid_size": 10,
-    "show_grid": True,
-}
+# 0: Black     1: Navy      2: Purple    3: Green
+# 4: Brown     5: DarkBlue  6: LightBlue 7: White
+# 8: Red       9: Orange    10: Yellow   11: Lime
+# 12: Cyan     13: Gray     14: Pink     15: Peach
 
-COLORS = {
-    "background": 0,  # Black
-    "grid": 5,  # Dark purple
-    "border": 13,  # Light gray
-    "text": 7,  # White
-    "widget_background": 1,  # Dark blue
-    "button_active": 11,  # Yellow
-    "button_hover": 9,  # Orange
-    "button_inactive": 5,  # Dark purple
-    "graph_line": 11,  # Yellow,
-}
+# Game colors
+COLOR_BACKGROUND = 0  # Black
+COLOR_GRID = 5  # Dark Blue
+COLOR_BORDER = 13  # Gray
+COLOR_TEXT = 7  # White
+COLOR_TEXT_HIGHLIGHT = 10  # Yellow
+COLOR_WIDGET_BG = 1  # Navy
+
+# Button colors
+COLOR_BUTTON_ACTIVE = 11  # Lime
+COLOR_BUTTON_HOVER = 9  # Orange
+COLOR_BUTTON_INACTIVE = 5  # Dark Blue
+
+# Graph colors
+COLOR_GRAPH_LINE = 11  # Lime
+COLOR_GRAPH_POSITIVE = 11  # Lime (for gains)
+COLOR_GRAPH_NEGATIVE = 8  # Red (for losses)
+
+# Scroll indicator
+COLOR_SCROLL_INDICATOR = 7  # White
 
 #
-# Widgets
+# Widget settings
 #
-TOTAL_VALUE_LINE_GRAPH = {
-    "width": 120,
-    "height": 80,
-    "initial_x": (SCREEN["width"] - 120) // 2,
-    "initial_y": (SCREEN["height"] - 80) // 2,
-}
+WIDGET_MARGIN = 5
+WIDGET_PADDING = 3
 
-REBALANCE_BUTTON = {
-    "width": 60,
-    "height": 15,
-    "initial_x": SCREEN["width"] - 60 - 10,
-    "initial_y": 10,
-}
+# Total value graph
+TOTAL_VALUE_GRAPH_WIDTH = 120
+TOTAL_VALUE_GRAPH_HEIGHT = 80
+TOTAL_VALUE_GRAPH_X = (SCREEN_WIDTH - TOTAL_VALUE_GRAPH_WIDTH) // 2
+TOTAL_VALUE_GRAPH_Y = (SCREEN_HEIGHT - TOTAL_VALUE_GRAPH_HEIGHT) // 2
 
-WIDGETS = {
-    "margin": 5,
-    "padding": 3,
-    "total_value_line_graph": TOTAL_VALUE_LINE_GRAPH,
-    "trade_button": REBALANCE_BUTTON,
-}
+# Rebalance button
+REBALANCE_BUTTON_WIDTH = 60
+REBALANCE_BUTTON_HEIGHT = 15
+REBALANCE_BUTTON_X = SCREEN_WIDTH - REBALANCE_BUTTON_WIDTH - 10
+REBALANCE_BUTTON_Y = 10
+
+# Timeline
+TIMELINE_HEIGHT = 8
+TIMELINE_WIDTH = 260
+TIMELINE_X = 30
+TIMELINE_Y = 100
+
+# Holdings list
+HOLDINGS_LIST_WIDTH = 120
+HOLDINGS_LIST_HEIGHT = 80
+HOLDINGS_LIST_X = (SCREEN_WIDTH - HOLDINGS_LIST_WIDTH) // 2
+HOLDINGS_LIST_Y = (SCREEN_WIDTH - HOLDINGS_LIST_HEIGHT) // 2
+
+# Game settings - can be adjusted for different gameplay styles
+GAME_START_CASH = 1000000  # Starting amount in dollars
+TRANSACTION_FEE = 0.001  # 0.1% fee per trade
+MAX_STOCKS = 10  # Maximum number of stocks player can hold
+REBALANCE_COOLDOWN = 5  # Days between allowed rebalances
+
+# Theme presets - easily swap between different visual themes
+# To change the theme, just update these variables at the top:
+CURRENT_THEME = "default"  # Options: "default", "dark", "retro", "hacker"
+
+
+# Define themes as functions to allow for computed values
+def apply_theme(theme_name):
+    global COLOR_BACKGROUND, COLOR_GRID, COLOR_BORDER, COLOR_TEXT
+    global COLOR_TEXT_HIGHLIGHT, COLOR_WIDGET_BG, COLOR_BUTTON_ACTIVE
+    global COLOR_BUTTON_HOVER, COLOR_BUTTON_INACTIVE, COLOR_GRAPH_LINE
+    global COLOR_GRAPH_POSITIVE, COLOR_GRAPH_NEGATIVE, COLOR_SCROLL_INDICATOR
+
+    if theme_name == "dark":
+        # Dark theme
+        COLOR_BACKGROUND = 0  # Black
+        COLOR_GRID = 13  # Gray
+        COLOR_BORDER = 5  # Dark Blue
+        COLOR_TEXT = 7  # White
+        COLOR_TEXT_HIGHLIGHT = 12  # Cyan
+        COLOR_WIDGET_BG = 1  # Navy
+        COLOR_BUTTON_ACTIVE = 3  # Green
+        COLOR_BUTTON_HOVER = 2  # Purple
+        COLOR_BUTTON_INACTIVE = 13  # Gray
+        COLOR_GRAPH_LINE = 12  # Cyan
+        COLOR_GRAPH_POSITIVE = 3  # Green
+        COLOR_GRAPH_NEGATIVE = 8  # Red
+        COLOR_SCROLL_INDICATOR = 7  # White
+
+    elif theme_name == "retro":
+        # Retro theme
+        COLOR_BACKGROUND = 1  # Navy
+        COLOR_GRID = 5  # Dark Blue
+        COLOR_BORDER = 7  # White
+        COLOR_TEXT = 10  # Yellow
+        COLOR_TEXT_HIGHLIGHT = 14  # Pink
+        COLOR_WIDGET_BG = 2  # Purple
+        COLOR_BUTTON_ACTIVE = 9  # Orange
+        COLOR_BUTTON_HOVER = 8  # Red
+        COLOR_BUTTON_INACTIVE = 5  # Dark Blue
+        COLOR_GRAPH_LINE = 9  # Orange
+        COLOR_GRAPH_POSITIVE = 9  # Orange
+        COLOR_GRAPH_NEGATIVE = 14  # Pink
+        COLOR_SCROLL_INDICATOR = 15  # Peach
+
+    elif theme_name == "hacker":
+        # Hacker theme
+        COLOR_BACKGROUND = 0  # Black
+        COLOR_GRID = 13  # Gray
+        COLOR_BORDER = 3  # Green
+        COLOR_TEXT = 3  # Green
+        COLOR_TEXT_HIGHLIGHT = 11  # Lime
+        COLOR_WIDGET_BG = 0  # Black
+        COLOR_BUTTON_ACTIVE = 11  # Lime
+        COLOR_BUTTON_HOVER = 3  # Green
+        COLOR_BUTTON_INACTIVE = 1  # Navy
+        COLOR_GRAPH_LINE = 3  # Green
+        COLOR_GRAPH_POSITIVE = 11  # Lime
+        COLOR_GRAPH_NEGATIVE = 8  # Red
+        COLOR_SCROLL_INDICATOR = 3  # Green
+
+    else:  # default theme
+        # Default values are already set at the top level
+        pass
+
+
+# Apply the currently selected theme
+apply_theme(CURRENT_THEME)

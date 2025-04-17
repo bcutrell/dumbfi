@@ -2,17 +2,18 @@ import pyxel
 import datetime
 import random
 from collections import deque
-import config
 
 
 class Widget:
-    def __init__(self, x, y, width, height):
+    def __init__(
+        self, x, y, width, height, grid_size=10, border_color=13, bg_color=1, margin=5
+    ):
         # Widget position and size
         self.x = x
         self.y = y
         self.width = width
         self.height = height
-        self.grid_size = config.SCREEN["grid_size"]
+        self.grid_size = grid_size
 
         # Dragging state
         self.draggable = True
@@ -22,9 +23,9 @@ class Widget:
         self.snap_to_grid = True
 
         # Styles
-        self.border_color = config.COLORS["border"]
-        self.bg_color = config.COLORS["widget_background"]
-        self.margin = config.WIDGETS["margin"]
+        self.border_color = border_color
+        self.bg_color = bg_color
+        self.margin = margin
         self.visible = True
 
         # Content area (inside margin)
@@ -100,8 +101,22 @@ class Widget:
 
 
 class ButtonWidget(Widget):
-    def __init__(self, x, y, width, height, text, callback=None):
-        super().__init__(x, y, width, height)
+    def __init__(
+        self,
+        x,
+        y,
+        width,
+        height,
+        text,
+        callback=None,
+        active_color=11,
+        hover_color=9,
+        inactive_color=5,
+        text_color=7,
+        padding=3,
+        **kwargs,
+    ):
+        super().__init__(x, y, width, height, **kwargs)
 
         # Button specific properties
         self.text = text
@@ -111,11 +126,11 @@ class ButtonWidget(Widget):
         self.enabled = True
 
         # Button specific appearance
-        self.active_color = COLOR_BUTTON_ACTIVE
-        self.hover_color = COLOR_BUTTON_HOVER
-        self.inactive_color = COLOR_BUTTON_INACTIVE
-        self.text_color = COLOR_TEXT
-        self.padding = WIDGET_PADDING
+        self.active_color = active_color
+        self.hover_color = hover_color
+        self.inactive_color = inactive_color
+        self.text_color = text_color
+        self.padding = padding
 
         self.draggable = False
 
@@ -185,13 +200,24 @@ class ButtonWidget(Widget):
 
 
 class LineGraphWidget(Widget):
-    def __init__(self, x, y, width, height, max_points=100, min_value=0, max_value=100):
-        super().__init__(x, y, width, height)
+    def __init__(
+        self,
+        x,
+        y,
+        width,
+        height,
+        max_points=100,
+        min_value=0,
+        max_value=100,
+        line_color=11,
+        **kwargs,
+    ):
+        super().__init__(x, y, width, height, **kwargs)
 
         # Graph data and appearance
         self.max_points = max_points
         self.data_points = deque(maxlen=max_points)
-        self.line_color = COLOR_GRAPH_LINE
+        self.line_color = line_color
 
         # Graph boundaries (with margin inside widget)
         self.graph_x = self.margin
@@ -245,58 +271,72 @@ class LineGraphWidget(Widget):
 
 
 class TimelineWidget(Widget):
-    def __init__(self, x, y, width, height):
-        super().__init__(x, y, width, height)
-        self.start_date = datetime.date(2024, 1, 1)
-        self.end_date = datetime.date(2024, 12, 31)
-        self.current_date = self.start_date
+    def __init__(
+        self,
+        x,
+        y,
+        width,
+        height,
+        start_date=datetime.date(2024, 1, 1),
+        end_date=datetime.date(2024, 12, 31),
+        current_date=None,
+        border_color=5,
+        completed_color=11,
+        remaining_color=1,
+        text_color=7,
+        **kwargs,
+    ):
+        super().__init__(x, y, width, height, border_color=border_color, **kwargs)
+
+        self.start_date = start_date
+        self.end_date = end_date
+        self.current_date = current_date if current_date else start_date
         self.days_in_year = (self.end_date - self.start_date).days + 1
 
-        # Timeline properties
-        self.timeline_x = x
-        self.timeline_y = y
-        self.timeline_width = width
-        self.timeline_height = height
+        # Timeline colors
+        self.completed_color = completed_color
+        self.remaining_color = remaining_color
+        self.text_color = text_color
 
     def draw(self):
         # Calculate progress and position
         progress = (self.current_date - self.start_date).days / (self.days_in_year - 1)
-        indicator_x = self.timeline_x + int(progress * self.timeline_width)
-        completed_width = int(progress * self.timeline_width)
-        remaining_width = self.timeline_width - completed_width
+        indicator_x = self.x + int(progress * self.width)
+        completed_width = int(progress * self.width)
+        remaining_width = self.width - completed_width
 
         # Draw timeline bar with color change
         # First draw the border
         pyxel.rectb(
-            self.timeline_x,
-            self.timeline_y,
-            self.timeline_width,
-            self.timeline_height,
-            5,
-        )  # Border
+            self.x,
+            self.y,
+            self.width,
+            self.height,
+            self.border_color,
+        )
 
         # Draw completed portion (green)
         if completed_width > 0:
             pyxel.rect(
-                self.timeline_x,
-                self.timeline_y,
+                self.x,
+                self.y,
                 completed_width,
-                self.timeline_height,
-                11,
-            )  # Completed (green)
+                self.height,
+                self.completed_color,
+            )
 
         # Draw remaining portion (gray)
         if remaining_width > 0:
             pyxel.rect(
-                self.timeline_x + completed_width,
-                self.timeline_y,
+                self.x + completed_width,
+                self.y,
                 remaining_width,
-                self.timeline_height,
-                1,
-            )  # Remaining (gray)
+                self.height,
+                self.remaining_color,
+            )
 
         # Draw position indicator
-        pyxel.rect(indicator_x - 2, self.timeline_y - 4, 4, 16, 8)
+        pyxel.rect(indicator_x - 2, self.y - 4, 4, 16, 8)
 
         # Draw month markers
         for month in range(1, 13):
@@ -304,28 +344,48 @@ class TimelineWidget(Widget):
             month_progress = (month_date - self.start_date).days / (
                 self.days_in_year - 1
             )
-            month_x = self.timeline_x + int(month_progress * self.timeline_width)
+            month_x = self.x + int(month_progress * self.width)
 
             # Draw month marker
             pyxel.line(
                 month_x,
-                self.timeline_y - 4,
+                self.y - 4,
                 month_x,
-                self.timeline_y + self.timeline_height + 4,
+                self.y + self.height + 4,
                 6,
             )
 
             # Draw month label (abbreviated)
             month_name = month_date.strftime("%b")
             text_x = month_x - len(month_name) * 2
-            pyxel.text(
-                text_x, self.timeline_y + self.timeline_height + 6, month_name, 7
-            )
+            pyxel.text(text_x, self.y + self.height + 6, month_name, self.text_color)
 
 
 class ScrollableListWidget(Widget):
-    def __init__(self, x, y, width, height, positions):
-        super().__init__(x, y, width, height)
+    def __init__(
+        self,
+        x,
+        y,
+        width,
+        height,
+        positions=None,
+        text_color=7,
+        highlight_color=10,
+        scroll_indicator_color=7,
+        **kwargs,
+    ):
+        super().__init__(x, y, width, height, **kwargs)
+
+        # Set colors
+        self.text_color = text_color
+        self.highlight_color = highlight_color
+        self.scroll_indicator_color = scroll_indicator_color
+
+        # Default positions if none provided
+        if positions is None:
+            positions = [
+                ("$", 100),
+            ]
 
         # Calculate percentages
         total_value = sum(value for _, value in positions)
@@ -355,13 +415,13 @@ class ScrollableListWidget(Widget):
         super().draw()
 
         # Draw title
-        pyxel.text(self.content_x, self.content_y, self.title, COLOR_TEXT)
+        pyxel.text(self.content_x, self.content_y, self.title, self.text_color)
         pyxel.line(
             self.content_x,
             self.content_y + 10,
             self.content_x + self.content_width - 10,
             self.content_y + 10,
-            COLOR_BORDER,
+            self.border_color,
         )
 
         # Draw positions in scrollable area
@@ -373,9 +433,12 @@ class ScrollableListWidget(Widget):
 
             # Only draw visible items
             if content_start_y <= y_pos < content_start_y + available_height:
-                pyxel.text(self.content_x, y_pos, f"{name}", COLOR_TEXT)
+                pyxel.text(self.content_x, y_pos, f"{name}", self.text_color)
                 pyxel.text(
-                    self.content_x + 45, y_pos, f"{percentage:.1f}%", COLOR_HIGHLIGHT
+                    self.content_x + 45,
+                    y_pos,
+                    f"{percentage:.1f}%",
+                    self.highlight_color,
                 )
 
         # Draw scrollability indicators if needed
@@ -389,7 +452,7 @@ class ScrollableListWidget(Widget):
                     self.content_y + 20,
                     self.x + self.width - 5,
                     self.content_y + 20,
-                    COLOR_SCROLL_INDICATOR,
+                    self.scroll_indicator_color,
                 )
 
             # Show down arrow to indicate scrollability
@@ -401,15 +464,28 @@ class ScrollableListWidget(Widget):
                     self.content_y + self.content_height - 10,
                     self.x + self.width - 5,
                     self.content_y + self.content_height - 10,
-                    COLOR_SCROLL_INDICATOR,
+                    self.scroll_indicator_color,
                 )
 
 
 class TextBoxWidget(Widget):
-    def __init__(self, x, y, width, height, total_aum):
-        super().__init__(x, y, width, height)
+    def __init__(
+        self,
+        x,
+        y,
+        width,
+        height,
+        total_aum,
+        text_color=7,
+        highlight_color=10,
+        title="TOTAL AUM",
+        **kwargs,
+    ):
+        super().__init__(x, y, width, height, **kwargs)
         self.total_aum = total_aum
-        self.title = "TOTAL AUM"
+        self.title = title
+        self.text_color = text_color
+        self.highlight_color = highlight_color
 
     def update(self):
         pass
@@ -418,7 +494,7 @@ class TextBoxWidget(Widget):
         super().draw()
 
         # Draw title
-        pyxel.text(self.content_x, self.content_y, self.title, COLOR_TEXT)
+        pyxel.text(self.content_x, self.content_y, self.title, self.text_color)
 
         # Format AUM with commas
         formatted_aum = "${:,.0f}".format(self.total_aum)
@@ -427,12 +503,4 @@ class TextBoxWidget(Widget):
         aum_x = self.x + (self.width // 2) - (len(formatted_aum) * 2)
         aum_y = self.y + (self.height // 2) + 5
 
-        pyxel.text(aum_x, aum_y, formatted_aum, COLOR_HIGHLIGHT)
-
-
-class TableWidget(Widget):
-    pass
-
-
-class InputBoxWidget(Widget):
-    pass
+        pyxel.text(aum_x, aum_y, formatted_aum, self.highlight_color)
