@@ -2,17 +2,18 @@
 TODO
 notes/
 data/
+.env
 
 # uv specific
 .uv/
 .venv/
-__pypackages__/
+**/__pypackages__/
 
 # byte-compiled / optimized / DLL files
-__pycache__/
+ **/__pycache__/
 *.py[cod]
 *$py.class
-
+*.so
 
 # packaging
 .Python
@@ -31,7 +32,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
+/target/
 
 # macOS
 .DS_Store
@@ -40,3 +41,8 @@ MANIFEST
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# IDE files
+.idea/
+.vscode/
+*.swp

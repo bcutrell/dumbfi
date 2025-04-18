@@ -1,8 +1,10 @@
 import pyxel
 import datetime
 import random
-import config
-from widgets import (
+
+from dumbfi._core import get_prices
+from dumbfi import config
+from dumbfi.widgets import (
     LineGraphWidget,
     ButtonWidget,
     TimelineWidget,
@@ -26,10 +28,18 @@ class App:
         self.widgets = []
         self.init_widgets()
 
+        # placeholder for _core functions
+        symbols = ["AAPL", "MSFT", "GOOG"]
+        start_date = "2024-01-01"
+        end_date = "2024-01-31"
+        prices = get_prices(symbols, start_date, end_date)
+        assert prices is None # TODO
+
         # Start pyxel engine
         pyxel.init(self.width, self.height, title="dumbfi", fps=self.fps)
         pyxel.mouse(True)
         pyxel.run(self.update, self.draw)
+
 
     def init_game_state(self):
         """Initialize game state variables"""
@@ -43,7 +53,7 @@ class App:
 
         # Portfolio data
         self.total_aum = 1000000
-        self.positions = None 
+        self.positions = None
         # [
         #     ("AAPL", 200000),
         #     ("BTC", 200000),

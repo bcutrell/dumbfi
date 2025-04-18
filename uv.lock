@@ -62,7 +62,7 @@ wheels = [
 [[package]]
 name = "dumbfi"
 version = "0.0.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "lxml" },
     { name = "pandas" },
