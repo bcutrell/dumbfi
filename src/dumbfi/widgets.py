@@ -6,7 +6,16 @@ from collections import deque
 
 class Widget:
     def __init__(
-        self, x, y, width, height, grid_size=10, border_color=13, bg_color=1, margin=5
+        self,
+        x,
+        y,
+        width,
+        height,
+        grid_size=10,
+        border_color=13,
+        bg_color=1,
+        margin=5,
+        resizeable=False,
     ):
         # Widget position and size
         self.x = x
@@ -34,6 +43,13 @@ class Widget:
         self.content_width = self.width - 2 * self.margin
         self.content_height = self.height - 2 * self.margin
 
+        # Resizing state
+        self.resizeable = resizeable
+        self.resizing = False
+        self.resize_handle_size = 8
+        self.min_width = 60
+        self.min_height = 40
+
     def is_point_inside(self, point_x, point_y):
         return (
             self.x <= point_x <= self.x + self.width
@@ -49,7 +65,12 @@ class Widget:
         self.content_y += delta_y
 
     def start_drag(self, mouse_x, mouse_y):
-        if not self.draggable or not self.visible:
+        # Check resize handle first
+        if self.resizeable and self.is_on_resize_handle(mouse_x, mouse_y):
+            return self.start_resize(mouse_x, mouse_y)
+
+        # Then check for dragging
+        if not self.draggable:
             return False
 
         if self.is_point_inside(mouse_x, mouse_y):
@@ -98,6 +119,71 @@ class Widget:
         if not self.visible:
             return
         self.draw_frame()
+        if self.resizeable:
+            self.draw_resize_handle()
+
+    def is_on_resize_handle(self, point_x, point_y):
+        """Check if point is on the resize handle (bottom-right corner)"""
+        if not self.resizeable:
+            return False
+
+        return (
+            self.x + self.width - self.resize_handle_size
+            <= point_x
+            <= self.x + self.width
+            and self.y + self.height - self.resize_handle_size
+            <= point_y
+            <= self.y + self.height
+        )
+
+    def start_resize(self, mouse_x, mouse_y):
+        """Start resizing if mouse is on resize handle"""
+        if not self.resizeable or not self.visible:
+            return False
+
+        if self.is_on_resize_handle(mouse_x, mouse_y):
+            self.resizing = True
+            return True
+        return False
+
+    def update_resize(self, mouse_x, mouse_y):
+        """Update the widget size during resizing"""
+        if not self.resizing or not self.visible:
+            return
+
+        # Calculate new width and height, respecting minimum size
+        new_width = max(self.min_width, mouse_x - self.x)
+        new_height = max(self.min_height, mouse_y - self.y)
+
+        # Snap to grid if enabled
+        if self.snap_to_grid and self.grid_size > 0:
+            new_width = round(new_width / self.grid_size) * self.grid_size
+            new_height = round(new_height / self.grid_size) * self.grid_size
+
+        # Update dimensions
+        self.width = new_width
+        self.height = new_height
+
+        # Update content area
+        self.content_width = self.width - 2 * self.margin
+        self.content_height = self.height - 2 * self.margin
+
+    def end_resize(self):
+        """End the resize operation"""
+        self.resizing = False
+
+    def draw_resize_handle(self):
+        """Draw the resize handle if widget is resizeable"""
+        if not self.resizeable or not self.visible:
+            return
+
+        pyxel.rectb(
+            self.x + self.width - self.resize_handle_size,
+            self.y + self.height - self.resize_handle_size,
+            self.resize_handle_size,
+            self.resize_handle_size,
+            self.border_color,
+        )
 
 
 class ButtonWidget(Widget):
@@ -238,6 +324,21 @@ class LineGraphWidget(Widget):
 
     def update(self):
         pass
+
+    def update_graph_dimensions(self):
+        """Update internal graph dimensions based on widget size"""
+        self.graph_x = self.margin
+        self.graph_y = self.margin
+        self.graph_width = self.width - 2 * self.margin
+        self.graph_height = self.height - 2 * self.margin
+
+    def update_resize(self, mouse_x, mouse_y):
+        """Override to update graph dimensions after resizing"""
+        # Call the parent class implementation first
+        super().update_resize(mouse_x, mouse_y)
+
+        # Then update graph-specific dimensions
+        self.update_graph_dimensions()
 
     def draw(self):
         # Draw border and background

@@ -33,13 +33,12 @@ class App:
         start_date = "2024-01-01"
         end_date = "2024-01-31"
         prices = get_prices(symbols, start_date, end_date)
-        assert prices is None # TODO
+        assert prices is None  # TODO
 
         # Start pyxel engine
         pyxel.init(self.width, self.height, title="dumbfi", fps=self.fps)
         pyxel.mouse(True)
         pyxel.run(self.update, self.draw)
-
 
     def init_game_state(self):
         """Initialize game state variables"""
@@ -77,6 +76,7 @@ class App:
             border_color=config.COLOR_BORDER,
             bg_color=config.COLOR_WIDGET_BG,
             margin=config.WIDGET_MARGIN,
+            resizeable=True,
         )
         self.widgets.append(self.total_value_line_graph)
 
@@ -204,21 +204,32 @@ class App:
         for widget in self.widgets:
             widget.update()
 
-        # Handle widget dragging
+        # Handle widget interactions (dragging or resizing)
         if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
             for widget in reversed(self.widgets):  # Check from front to back
-                if widget.start_drag(pyxel.mouse_x, pyxel.mouse_y):
-                    break  # Only one widget should be dragged at a time
+                if widget.resizeable and widget.start_resize(
+                    pyxel.mouse_x, pyxel.mouse_y
+                ):
+                    break  # Only allow one widget to be resized at a time
+                elif widget.draggable and widget.start_drag(
+                    pyxel.mouse_x, pyxel.mouse_y
+                ):
+                    break  # Only allow one widget to be dragged at a time
 
         if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
             for widget in self.widgets:
-                widget.update_drag(
-                    pyxel.mouse_x, pyxel.mouse_y, self.width, self.height
-                )
+                if widget.resizing:
+                    widget.update_resize(pyxel.mouse_x, pyxel.mouse_y)
+                elif widget.dragging:
+                    widget.update_drag(
+                        pyxel.mouse_x, pyxel.mouse_y, self.width, self.height
+                    )
 
         if pyxel.btnr(pyxel.MOUSE_BUTTON_LEFT):
             for widget in self.widgets:
                 widget.end_drag()
+                if widget.resizeable:
+                    widget.end_resize()
 
         # G key -> Toggle grid visibility
         if pyxel.btnp(pyxel.KEY_G):
