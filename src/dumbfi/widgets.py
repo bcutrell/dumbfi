@@ -16,6 +16,7 @@ class Widget:
         bg_color=1,
         margin=5,
         resizeable=False,
+        draggable=True,
     ):
         # Widget position and size
         self.x = x
@@ -25,7 +26,7 @@ class Widget:
         self.grid_size = grid_size
 
         # Dragging state
-        self.draggable = True
+        self.draggable = draggable
         self.dragging = False
         self.drag_offset_x = 0
         self.drag_offset_y = 0
@@ -315,9 +316,12 @@ class LineGraphWidget(Widget):
         self.min_value = min_value
         self.max_value = max_value
 
-        # Initialize with some random data
-        for _ in range(self.max_points // 2):
-            self.add_data_point(random.randint(self.min_value, self.max_value))
+        # TODO 
+        # Cursor for data inspection
+        # self.cursor_active = False
+        # self.cursor_x = 0
+        # self.cursor_index = 0
+        # self.cursor_color = 8
 
     def add_data_point(self, value):
         self.data_points.append(value)

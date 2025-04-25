@@ -52,16 +52,22 @@ class App:
 
         # Portfolio data
         self.total_aum = 1000000
-        self.positions = None
-        # [
-        #     ("AAPL", 200000),
-        #     ("BTC", 200000),
-        #     ("IBM", 600000),
-        #     ("TSLA", 50000),
-        #     ("MSFT", 75000),
-        #     ("AMZN", 30000),
-        #     ("GOOG", 45000),
-        # ]
+        self.positions = [
+            ("AAPL", 200000),
+            ("BTC", 200000),
+            ("IBM", 600000),
+            ("TSLA", 50000),
+            ("MSFT", 75000),
+            ("AMZN", 30000),
+            ("GOOG", 45000),
+            ("AAPL", 200000),
+            ("BTC", 200000),
+            ("IBM", 600000),
+            ("TSLA", 50000),
+            ("MSFT", 75000),
+            ("AMZN", 30000),
+            ("GOOG", 45000),
+        ]
 
     def init_widgets(self):
         """Initialize all UI widgets with config values"""
@@ -132,6 +138,7 @@ class App:
             grid_size=config.GRID_SIZE,
             bg_color=config.COLOR_WIDGET_BG,
             margin=config.WIDGET_MARGIN,
+            draggable=False
         )
         self.widgets.append(self.timeline_widget)
 
