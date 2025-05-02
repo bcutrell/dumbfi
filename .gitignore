@@ -3,6 +3,7 @@ TODO
 notes/
 data/
 .env
+yfinance.cache
 
 # uv specific
 .uv/
