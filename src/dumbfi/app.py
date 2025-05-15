@@ -2,7 +2,7 @@ import pyxel
 import datetime
 import random
 
-from dumbfi._core import get_prices
+from dumbfi._core import Market
 from dumbfi import config
 from dumbfi.widgets import (
     LineGraphWidget,
@@ -28,12 +28,12 @@ class App:
         self.widgets = []
         self.init_widgets()
 
-        # placeholder for _core functions
-        symbols = ["AAPL", "MSFT", "GOOG"]
-        start_date = "2024-01-01"
-        end_date = "2024-01-31"
-        prices = get_prices(symbols, start_date, end_date)
-        assert prices is None  # TODO
+        # TODO placeholder test
+        self.market = Market()
+        price = self.market.get_price("2024-01-01", "AAPL") # good date
+        assert price is not None
+        price = self.market.get_price("2027-01-01", "AAPL") # bad date
+        assert price is None
 
         # Start pyxel engine
         pyxel.init(self.width, self.height, title="dumbfi", fps=self.fps)
