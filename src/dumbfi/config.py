@@ -1,4 +1,11 @@
 #
+# Market Data
+#
+
+# Paths (temp)
+MARKET_DATA_FILE = "sample_prices.csv"
+
+#
 # Screen settings
 #
 SCREEN_WIDTH = 240
