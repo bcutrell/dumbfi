@@ -41,7 +41,6 @@ def load_price_data(filepath: str) -> pd.DataFrame:
     print(f"Loading price data from {filepath}...")
     df = pd.read_csv(filepath, index_col=0, parse_dates=True)
     df = df.dropna(axis=1, how='all')
-    df = df.fillna(method='ffill')
     df = df.dropna()
     print(f"Loaded data for {len(df.columns)} assets over {len(df)} trading days")
     print(f"Date range: {df.index[0]} to {df.index[-1]}")
