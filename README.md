@@ -23,6 +23,12 @@ uv sync -e .
 uv run dumbfi
 ```
 
+## Rust Changes
+```bash
+# Changes to the extension code in lib.rs will require running --reinstall to rebuild them.
+uv sync --reinstall
+```
+
 ## How to Distribute
 
 (from https://github.com/kitao/pyxel)
