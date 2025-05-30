@@ -228,7 +228,7 @@ class App:
         if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
             for widget in self.widgets:
                 if widget.resizing:
-                    widget.update_resize(pyxel.mouse_x, pyxel.mouse_y)
+                    widget.update_resize(pyxel.mouse_x, pyxel.mouse_y, self.width, self.height)
                 elif widget.dragging:
                     widget.update_drag(
                         pyxel.mouse_x, pyxel.mouse_y, self.width, self.height
