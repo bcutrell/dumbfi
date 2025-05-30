@@ -147,7 +147,7 @@ class Widget:
             return True
         return False
 
-    def update_resize(self, mouse_x, mouse_y):
+    def update_resize(self, mouse_x, mouse_y, screen_width=None, screen_height=None):
         """Update the widget size during resizing"""
         if not self.resizing or not self.visible:
             return
@@ -155,6 +155,14 @@ class Widget:
         # Calculate new width and height, respecting minimum size
         new_width = max(self.min_width, mouse_x - self.x)
         new_height = max(self.min_height, mouse_y - self.y)
+
+        # Add screen boundary constraints
+        if screen_width and screen_height:
+            # Ensure widget doesn't exceed screen boundaries
+            max_width = screen_width - self.x
+            max_height = screen_height - self.y
+            new_width = min(new_width, max_width)
+            new_height = min(new_height, max_height)
 
         # Snap to grid if enabled
         if self.snap_to_grid and self.grid_size > 0:
@@ -336,10 +344,10 @@ class LineGraphWidget(Widget):
         self.graph_width = self.width - 2 * self.margin
         self.graph_height = self.height - 2 * self.margin
 
-    def update_resize(self, mouse_x, mouse_y):
+    def update_resize(self, mouse_x, mouse_y, screen_width=None, screen_height=None):
         """Override to update graph dimensions after resizing"""
         # Call the parent class implementation first
-        super().update_resize(mouse_x, mouse_y)
+        super().update_resize(mouse_x, mouse_y, screen_width, screen_height)
 
         # Then update graph-specific dimensions
         self.update_graph_dimensions()
