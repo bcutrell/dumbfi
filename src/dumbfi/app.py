@@ -108,10 +108,10 @@ class App:
 
         # Play/Pause button
         self.play_button = ButtonWidget(
-            x=10,
-            y=30,
-            width=60,
-            height=15,
+            x=config.PLAY_BUTTON_X,
+            y=config.PLAY_BUTTON_Y,
+            width=config.PLAY_BUTTON_WIDTH,
+            height=config.PLAY_BUTTON_HEIGHT,
             text="Play",
             callback=self.on_play_pause,
             active_color=config.COLOR_BUTTON_ACTIVE,
@@ -163,10 +163,10 @@ class App:
 
         # Total AUM display
         self.aum_widget = TextBoxWidget(
-            x=self.width - 90,
-            y=self.height - 45,
-            width=80,
-            height=40,
+            x=config.AUM_WIDGET_X,
+            y=config.AUM_WIDGET_Y,
+            width=config.AUM_WIDGET_WIDTH,
+            height=config.AUM_WIDGET_HEIGHT,
             total_aum=self.total_aum,
             text_color=config.COLOR_TEXT,
             highlight_color=config.COLOR_TEXT_HIGHLIGHT,
