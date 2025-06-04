@@ -12,6 +12,7 @@ from dumbfi.widgets import (
     TextBoxWidget,
 )
 
+DEBUG = True
 
 class App:
     def __init__(self):
@@ -257,6 +258,15 @@ class App:
 
         for widget in self.widgets:
             widget.draw()
+
+        if DEBUG:
+            coord_text = f"({pyxel.mouse_x}, {pyxel.mouse_y})"
+            pyxel.text(pyxel.mouse_x + 10, pyxel.mouse_y - 10, coord_text, 7)
+            pyxel.pset(pyxel.mouse_x, pyxel.mouse_y, 8)
+
+            # Optional: draw full screen crosshair
+            # pyxel.line(0, pyxel.mouse_y, pyxel.width - 1, pyxel.mouse_y, 7)
+            # pyxel.line(pyxel.mouse_x, 0, pyxel.mouse_x, pyxel.height - 1, 7)
 
     def draw_grid_dots(self):
         """Draw grid dots on the screen"""
