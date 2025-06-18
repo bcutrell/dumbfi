@@ -28,3 +28,10 @@ python-source = "src"
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
+
+[tool.uv.scripts]
+test = "python -m pytest {args}"
+cov = "python -m pytest --cov=src --cov-report=html {args}"
+lint = "ruff check --fix src tests && ruff format src tests && mypy src"
+check = "ruff check src tests && ruff format --check src tests && mypy src"
+notebook = "jupyter notebook {args}"
