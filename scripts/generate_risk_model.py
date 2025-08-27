@@ -40,7 +40,7 @@ def load_price_data(filepath: str) -> pd.DataFrame:
     """Load price data from CSV file."""
     print(f"Loading price data from {filepath}...")
     df = pd.read_csv(filepath, index_col=0, parse_dates=True)
-    df = df.dropna(axis=1, how='all')
+    df = df.dropna(axis=1, how="all")
     df = df.dropna()
     print(f"Loaded data for {len(df.columns)} assets over {len(df)} trading days")
     print(f"Date range: {df.index[0]} to {df.index[-1]}")
@@ -117,13 +117,10 @@ def save_risk_model(mu: pd.Series, S: pd.DataFrame, output_dir: str):
     # Save metadata
     metadata = {
         "num_assets": len(assets),
-        "date_range": {
-            "start": START_DATE,
-            "end": END_DATE
-        },
+        "date_range": {"start": START_DATE, "end": END_DATE},
         "risk_free_rate": 0.02,  # Assumed 2% risk-free rate
         "frequency": 252,  # Trading days per year
-        "model_type": "sample_covariance"
+        "model_type": "sample_covariance",
     }
 
     with open(os.path.join(output_dir, "metadata.json"), "w") as f:

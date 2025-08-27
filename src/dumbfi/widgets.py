@@ -324,7 +324,7 @@ class LineGraphWidget(Widget):
         self.min_value = min_value
         self.max_value = max_value
 
-        # TODO 
+        # TODO
         # Cursor for data inspection
         # self.cursor_active = False
         # self.cursor_x = 0

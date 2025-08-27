@@ -14,6 +14,7 @@ from dumbfi.widgets import (
 
 DEBUG = True
 
+
 class App:
     def __init__(self):
         self.width = config.SCREEN_WIDTH
@@ -33,9 +34,9 @@ class App:
         self.market = PyMarket()
         self.market.read_prices(str(config.MARKET_DATA_FILE))
 
-        price = self.market.get_price("2024-01-02", "AAPL") # good date
+        price = self.market.get_price("2024-01-02", "AAPL")  # good date
         assert price is not None
-        price = self.market.get_price("2027-01-01", "AAPL") # bad date
+        price = self.market.get_price("2027-01-01", "AAPL")  # bad date
         assert price is None
 
         # Start pyxel engine
@@ -141,7 +142,7 @@ class App:
             grid_size=config.GRID_SIZE,
             bg_color=config.COLOR_WIDGET_BG,
             margin=config.WIDGET_MARGIN,
-            draggable=False
+            draggable=False,
         )
         self.widgets.append(self.timeline_widget)
 
@@ -229,7 +230,9 @@ class App:
         if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
             for widget in self.widgets:
                 if widget.resizing:
-                    widget.update_resize(pyxel.mouse_x, pyxel.mouse_y, self.width, self.height)
+                    widget.update_resize(
+                        pyxel.mouse_x, pyxel.mouse_y, self.width, self.height
+                    )
                 elif widget.dragging:
                     widget.update_drag(
                         pyxel.mouse_x, pyxel.mouse_y, self.width, self.height
