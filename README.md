@@ -5,7 +5,6 @@ A very much WIP retro-style stock trading simulator
 ## Built With
 
 - Python frontend with Pyxel retro game engine
-- Rust backend for using maturin
 
 ## Setup & Installation
 
@@ -13,7 +12,7 @@ A very much WIP retro-style stock trading simulator
 pip install uv
 
 # clone the repo
-git clone https://github.com/yourusername/dumbfi.git
+git clone https://github.com/bcutrellyourusername/dumbfi.git
 cd dumbfi
 
 # sync the environment
@@ -23,10 +22,9 @@ uv sync -e .
 uv run dumbfi
 ```
 
-## Rust Changes
-```bash
-# Changes to the extension code in lib.rs will require running --reinstall to rebuild them.
-uv sync --reinstall
+## CLI
+```
+cd cli && npm run build && node dist/cli.js
 ```
 
 ## How to Distribute
