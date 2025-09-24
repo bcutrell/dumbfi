@@ -2,7 +2,7 @@ import pyxel
 import datetime
 import random
 
-from dumbfi._core import PyMarket
+from dumbfi.market_data import PyMarket
 from dumbfi import config
 from dumbfi.widgets import (
     LineGraphWidget,

@@ -332,7 +332,7 @@ wheels = [
 [[package]]
 name = "dumbfi"
 version = "0.0.0"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "cvxpy" },
     { name = "lxml" },
