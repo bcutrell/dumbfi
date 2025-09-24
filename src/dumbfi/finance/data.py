@@ -10,7 +10,7 @@ from pathlib import Path
 import yfinance as yf
 from datetime import datetime, date, timedelta
 
-from dumbfi._core import PyMarket
+from dumbfi.market_data import PyMarket
 
 
 class MarketData:
