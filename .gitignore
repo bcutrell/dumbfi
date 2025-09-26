@@ -34,6 +34,7 @@ wheels/
 .installed.cfg
 *.egg
 /target/
+package-lock.json
 
 # macOS
 .DS_Store
@@ -47,3 +48,4 @@ Desktop.ini
 .idea/
 .vscode/
 *.swp
+
