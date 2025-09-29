@@ -2,8 +2,7 @@ import pyxel
 import datetime
 import random
 
-from dumbfi.market_data import PyMarket
-from dumbfi import config
+from dumbfi.market import PyMarket
 from dumbfi.widgets import (
     LineGraphWidget,
     ButtonWidget,
@@ -11,6 +10,7 @@ from dumbfi.widgets import (
     ScrollableListWidget,
     TextBoxWidget,
 )
+from game import config
 
 DEBUG = True
 

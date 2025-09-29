@@ -3,7 +3,7 @@
 #
 
 # Paths (temp)
-MARKET_DATA_FILE = "sample_prices.csv"
+MARKET_DATA_FILE = "data/sample_prices.csv"
 
 #
 # Screen settings
