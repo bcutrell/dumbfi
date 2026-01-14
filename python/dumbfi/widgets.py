@@ -1,63 +1,63 @@
+"""Pyxel UI widgets for games and applications."""
+
 import pyxel
 import datetime
 import random
 from collections import deque
+from typing import List, Tuple, Optional, Callable
 
 
 class Widget:
+    """Base widget class with dragging and resizing support."""
+
     def __init__(
         self,
-        x,
-        y,
-        width,
-        height,
-        grid_size=10,
-        border_color=13,
-        bg_color=1,
-        margin=5,
-        resizeable=False,
-        draggable=True,
-    ):
-        # Widget position and size
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+        grid_size: int = 10,
+        border_color: int = 13,
+        bg_color: int = 1,
+        margin: int = 5,
+        resizeable: bool = False,
+        draggable: bool = True,
+    ) -> None:
         self.x = x
         self.y = y
         self.width = width
         self.height = height
         self.grid_size = grid_size
 
-        # Dragging state
         self.draggable = draggable
         self.dragging = False
         self.drag_offset_x = 0
         self.drag_offset_y = 0
         self.snap_to_grid = True
 
-        # Styles
         self.border_color = border_color
         self.bg_color = bg_color
         self.margin = margin
         self.visible = True
 
-        # Content area (inside margin)
         self.content_x = self.x + self.margin
         self.content_y = self.y + self.margin
         self.content_width = self.width - 2 * self.margin
         self.content_height = self.height - 2 * self.margin
 
-        # Resizing state
         self.resizeable = resizeable
         self.resizing = False
         self.resize_handle_size = 8
         self.min_width = 60
         self.min_height = 40
 
-    def is_point_inside(self, point_x, point_y):
+    def is_point_inside(self, point_x: int, point_y: int) -> bool:
         return (
             self.x <= point_x <= self.x + self.width
             and self.y <= point_y <= self.y + self.height
         )
 
-    def update_position(self, new_x, new_y):
+    def update_position(self, new_x: int, new_y: int) -> None:
         delta_x = new_x - self.x
         delta_y = new_y - self.y
         self.x = new_x
@@ -65,15 +65,11 @@ class Widget:
         self.content_x += delta_x
         self.content_y += delta_y
 
-    def start_drag(self, mouse_x, mouse_y):
-        # Check resize handle first
+    def start_drag(self, mouse_x: int, mouse_y: int) -> bool:
         if self.resizeable and self.is_on_resize_handle(mouse_x, mouse_y):
             return self.start_resize(mouse_x, mouse_y)
-
-        # Then check for dragging
         if not self.draggable:
             return False
-
         if self.is_point_inside(mouse_x, mouse_y):
             self.dragging = True
             self.drag_offset_x = mouse_x - self.x
@@ -81,15 +77,15 @@ class Widget:
             return True
         return False
 
-    def update_drag(self, mouse_x, mouse_y, screen_width, screen_height):
+    def update_drag(
+        self, mouse_x: int, mouse_y: int, screen_width: int, screen_height: int
+    ) -> None:
         if not self.dragging or not self.visible:
             return
 
-        # Calculate new position
         new_x = mouse_x - self.drag_offset_x
         new_y = mouse_y - self.drag_offset_y
 
-        # Keep widget within screen bounds
         new_x = max(0, min(new_x, screen_width - self.width))
         new_y = max(0, min(new_y, screen_height - self.height))
 
@@ -99,35 +95,31 @@ class Widget:
 
         self.update_position(new_x, new_y)
 
-    def end_drag(self):
+    def end_drag(self) -> None:
         self.dragging = False
 
-    def draw_frame(self):
+    def draw_frame(self) -> None:
         if not self.visible:
             return
-
-        # Draw border and background
         pyxel.rectb(self.x, self.y, self.width, self.height, self.border_color)
         pyxel.rect(
             self.x + 1, self.y + 1, self.width - 2, self.height - 2, self.bg_color
         )
 
-    def update(self):
-        pass  # To be implemented by subclasses
+    def update(self) -> None:
+        pass
 
-    def draw(self):
-        # Content drawing to be implemented by subclasses
+    def draw(self) -> None:
         if not self.visible:
             return
         self.draw_frame()
         if self.resizeable:
             self.draw_resize_handle()
 
-    def is_on_resize_handle(self, point_x, point_y):
-        """Check if point is on the resize handle (bottom-right corner)"""
+    def is_on_resize_handle(self, point_x: int, point_y: int) -> bool:
+        """Check if point is on the resize handle (bottom-right corner)."""
         if not self.resizeable:
             return False
-
         return (
             self.x + self.width - self.resize_handle_size
             <= point_x
@@ -137,17 +129,22 @@ class Widget:
             <= self.y + self.height
         )
 
-    def start_resize(self, mouse_x, mouse_y):
-        """Start resizing if mouse is on resize handle"""
+    def start_resize(self, mouse_x: int, mouse_y: int) -> bool:
+        """Start resizing if mouse is on resize handle."""
         if not self.resizeable or not self.visible:
             return False
-
         if self.is_on_resize_handle(mouse_x, mouse_y):
             self.resizing = True
             return True
         return False
 
-    def update_resize(self, mouse_x, mouse_y, screen_width=None, screen_height=None):
+    def update_resize(
+        self,
+        mouse_x: int,
+        mouse_y: int,
+        screen_width: Optional[int] = None,
+        screen_height: Optional[int] = None,
+    ) -> None:
         """Update the widget size during resizing"""
         if not self.resizing or not self.visible:
             return

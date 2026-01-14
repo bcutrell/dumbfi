@@ -1,26 +1,29 @@
 import React, {useState, useEffect, useCallback} from 'react';
-import {Box, useApp} from 'ink';
-import type {GameState, RiskProfile, Screen} from './types.js';
+import {Box} from 'ink';
+import type {GameState, RiskProfile, Screen} from '../types.js';
 import {
 	createInitialPortfolio,
 	initializeETFs,
 	simulateOneDay,
-} from './portfolio-logic.js';
-import {generateRandomEvent} from './events.js';
-import {saveState, clearState} from './state-manager.js';
-import {WelcomeScreen} from './components/WelcomeScreen.js';
-import {RiskSelection} from './components/RiskSelection.js';
-import {PortfolioDisplay} from './components/PortfolioDisplay.js';
-import {SimulationScreen} from './components/SimulationScreen.js';
-import {ResultsScreen} from './components/ResultsScreen.js';
-import {RebalanceScreen} from './components/RebalanceScreen.js';
-import {DisclaimerScreen} from './components/DisclaimerScreen.js';
+} from '../portfolio-logic.js';
+import {generateRandomEvent} from '../events.js';
+import {saveState, clearState} from '../state-manager.js';
+import {WelcomeScreen} from './WelcomeScreen.js';
+import {RiskSelection} from './RiskSelection.js';
+import {PortfolioDisplay} from './PortfolioDisplay.js';
+import {SimulationScreen} from './SimulationScreen.js';
+import {ResultsScreen} from './ResultsScreen.js';
+import {RebalanceScreen} from './RebalanceScreen.js';
+import {DisclaimerScreen} from './DisclaimerScreen.js';
 
 const STARTING_CASH = 10_000;
 const TOTAL_DAYS = 252;
 
-export default function App() {
-	const {exit} = useApp();
+type Props = {
+	onExit: () => void;
+};
+
+export function DemoApp({onExit}: Props) {
 	const [gameState, setGameState] = useState<GameState>({
 		screen: 'WELCOME',
 		riskProfile: null,
@@ -187,7 +190,7 @@ export default function App() {
 			)}
 
 			{gameState.screen === 'DISCLAIMER' && (
-				<DisclaimerScreen onPlayAgain={handlePlayAgain} onExit={exit} />
+				<DisclaimerScreen onPlayAgain={handlePlayAgain} onExit={onExit} />
 			)}
 		</Box>
 	);
