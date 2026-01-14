@@ -1,8 +1,8 @@
 [project]
 name = "dumbfi"
 version = "0.0.0"
-description = ""
-readme = "README.md"
+description = "Silly finance projects in Python"
+readme = "../README.md"
 authors = [{ name = "Ben Cutrell", email = "bcutrell13@gmail.com" }]
 requires-python = ">=3.12"
 dependencies = [
@@ -39,6 +39,7 @@ notebooks = [
 
 [project.scripts]
 dumbfi = "dumbfi:main"
+dumbfi-game = "games.pyxel_trading.trading_sim:main"
 
 
 [tool.pytest.ini_options]

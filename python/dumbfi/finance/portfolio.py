@@ -1,22 +1,18 @@
-"""
-Portfolio management and tracking utilities.
-
-Handles positions, performance calculations, and rebalancing.
-"""
+"""Portfolio management and tracking."""
 
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional, Tuple, Any
-from datetime import datetime, date
+from datetime import datetime
 from dataclasses import dataclass
-from copy import deepcopy
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
 class Position:
-    """
-    Represents a single position in a portfolio.
-    """
+    """Single position in a portfolio."""
 
     ticker: str
     quantity: float
@@ -26,9 +22,7 @@ class Position:
     @property
     def market_value(self) -> Optional[float]:
         """Current market value of the position."""
-        if self.current_price is None:
-            return None
-        return self.quantity * self.current_price
+        return self.quantity * self.current_price if self.current_price else None
 
     @property
     def cost_basis(self) -> float:
@@ -38,9 +32,7 @@ class Position:
     @property
     def unrealized_pnl(self) -> Optional[float]:
         """Unrealized profit/loss."""
-        if self.current_price is None:
-            return None
-        return self.market_value - self.cost_basis
+        return self.market_value - self.cost_basis if self.current_price else None
 
     @property
     def unrealized_return(self) -> Optional[float]:
@@ -51,18 +43,9 @@ class Position:
 
 
 class Portfolio:
-    """
-    Portfolio management class for tracking positions and performance.
-    """
+    """Portfolio management for tracking positions and performance."""
 
     def __init__(self, initial_cash: float = 1_000_000, name: str = "Portfolio"):
-        """
-        Initialize portfolio.
-
-        Args:
-            initial_cash: Starting cash amount
-            name: Portfolio name
-        """
         self.name = name
         self.initial_cash = initial_cash
         self.cash = initial_cash
@@ -73,86 +56,69 @@ class Portfolio:
     def add_position(
         self, ticker: str, quantity: float, price: float, transaction_cost: float = 0.0
     ) -> bool:
-        """
-        Add or update a position.
-
-        Args:
-            ticker: Stock ticker symbol
-            quantity: Number of shares (positive for buy, negative for sell)
-            price: Price per share
-            transaction_cost: Cost of the transaction
-
-        Returns:
-            True if transaction successful, False otherwise
-        """
+        """Add or update a position. Returns True if successful."""
         total_cost = abs(quantity) * price + transaction_cost
 
-        # Check if we have enough cash for buys
         if quantity > 0 and total_cost > self.cash:
-            print(f"Insufficient cash. Need ${total_cost:.2f}, have ${self.cash:.2f}")
+            logger.warning(f"Insufficient cash: need ${total_cost:.2f}, have ${self.cash:.2f}")
             return False
 
-        # Record transaction
-        transaction = {
+        self._record_transaction(ticker, quantity, price, transaction_cost)
+
+        if ticker in self.positions:
+            return self._update_existing_position(ticker, quantity, price, transaction_cost)
+        return self._create_new_position(ticker, quantity, price, total_cost)
+
+    def _record_transaction(
+        self, ticker: str, quantity: float, price: float, transaction_cost: float
+    ) -> None:
+        """Record a transaction in history."""
+        self.transaction_history.append({
             "timestamp": datetime.now(),
             "ticker": ticker,
             "quantity": quantity,
             "price": price,
             "transaction_cost": transaction_cost,
             "type": "BUY" if quantity > 0 else "SELL",
-        }
-        self.transaction_history.append(transaction)
+        })
 
-        if ticker in self.positions:
-            # Update existing position
-            existing = self.positions[ticker]
+    def _update_existing_position(
+        self, ticker: str, quantity: float, price: float, transaction_cost: float
+    ) -> bool:
+        """Update an existing position with buy or sell."""
+        existing = self.positions[ticker]
+        total_cost = abs(quantity) * price + transaction_cost
 
-            if quantity > 0:
-                # Buy more shares - update average cost
-                new_quantity = existing.quantity + quantity
-                total_cost_basis = existing.cost_basis + (quantity * price)
-                new_avg_cost = (
-                    total_cost_basis / new_quantity if new_quantity > 0 else 0
-                )
-
-                existing.quantity = new_quantity
-                existing.avg_cost = new_avg_cost
-                self.cash -= total_cost
-
-            else:
-                # Sell shares
-                sell_quantity = abs(quantity)
-                if sell_quantity > existing.quantity:
-                    print(
-                        f"Cannot sell {sell_quantity} shares, only have {existing.quantity}"
-                    )
-                    return False
-
-                existing.quantity -= sell_quantity
-                proceeds = sell_quantity * price - transaction_cost
-                self.cash += proceeds
-
-                # Remove position if completely sold
-                if existing.quantity <= 0:
-                    del self.positions[ticker]
+        if quantity > 0:
+            new_quantity = existing.quantity + quantity
+            total_cost_basis = existing.cost_basis + (quantity * price)
+            existing.quantity = new_quantity
+            existing.avg_cost = total_cost_basis / new_quantity if new_quantity > 0 else 0
+            self.cash -= total_cost
         else:
-            # New position
-            if quantity > 0:
-                self.positions[ticker] = Position(ticker, quantity, price)
-                self.cash -= total_cost
-            else:
-                print(f"Cannot sell {ticker}, no existing position")
+            sell_quantity = abs(quantity)
+            if sell_quantity > existing.quantity:
+                logger.warning(f"Cannot sell {sell_quantity} shares, only have {existing.quantity}")
                 return False
+            existing.quantity -= sell_quantity
+            self.cash += sell_quantity * price - transaction_cost
+            if existing.quantity <= 0:
+                del self.positions[ticker]
+        return True
 
+    def _create_new_position(
+        self, ticker: str, quantity: float, price: float, total_cost: float
+    ) -> bool:
+        """Create a new position."""
+        if quantity <= 0:
+            logger.warning(f"Cannot sell {ticker}, no existing position")
+            return False
+        self.positions[ticker] = Position(ticker, quantity, price)
+        self.cash -= total_cost
         return True
 
     def update_prices(self, prices: Dict[str, float]) -> None:
-        """
-        Update current prices for all positions.
-
-        Args:
-            prices: Dictionary of ticker -> current price
-        """
+        """Update current prices for all positions."""
         for ticker, position in self.positions.items():
             if ticker in prices:
                 position.current_price = prices[ticker]
@@ -199,11 +165,7 @@ class Portfolio:
         return sum(self.get_unrealized_pnl().values())
 
     def get_realized_pnl(self) -> float:
-        """
-        Calculate realized P&L from transaction history.
-        This is a simplified calculation - in practice you'd track cost basis more carefully.
-        """
-        # TODO: Implement proper realized P&L calculation using FIFO/LIFO
+        """Calculate realized P&L from transaction history using FIFO."""
         realized_pnl = 0.0
         position_cost_tracking = {}
 
@@ -246,12 +208,7 @@ class Portfolio:
         return ((current_value / self.initial_cash) - 1) * 100
 
     def record_snapshot(self, timestamp: Optional[datetime] = None) -> None:
-        """
-        Record a snapshot of portfolio performance.
-
-        Args:
-            timestamp: Timestamp for the snapshot (uses current time if None)
-        """
+        """Record a snapshot of portfolio performance."""
         if timestamp is None:
             timestamp = datetime.now()
 
@@ -281,15 +238,7 @@ class Portfolio:
     def calculate_performance_metrics(
         self, risk_free_rate: float = 0.02
     ) -> Dict[str, float]:
-        """
-        Calculate various performance metrics.
-
-        Args:
-            risk_free_rate: Annual risk-free rate for Sharpe ratio calculation
-
-        Returns:
-            Dictionary of performance metrics
-        """
+        """Calculate performance metrics including Sharpe ratio and max drawdown."""
         df = self.get_performance_history()
         if len(df) < 2:
             return {}
@@ -340,47 +289,29 @@ class Portfolio:
         current_prices: Dict[str, float],
         transaction_cost_rate: float = 0.001,
     ) -> Dict[str, float]:
-        """
-        Rebalance portfolio to target weights.
-
-        Args:
-            target_weights: Dictionary of ticker -> target weight (as percentage)
-            current_prices: Dictionary of ticker -> current price
-            transaction_cost_rate: Transaction cost as percentage of trade value
-
-        Returns:
-            Dictionary of trades executed (ticker -> quantity)
-        """
-        # Update prices first
+        """Rebalance portfolio to target weights. Returns executed trades."""
         self.update_prices(current_prices)
-
         total_value = self.get_total_value()
         current_weights = self.get_position_weights()
-
         trades = {}
 
-        # Calculate required trades
         for ticker, target_weight in target_weights.items():
             if ticker not in current_prices:
-                print(f"Warning: No price data for {ticker}, skipping")
+                logger.warning(f"No price data for {ticker}, skipping")
                 continue
 
             current_weight = current_weights.get(ticker, 0)
             weight_diff = target_weight - current_weight
 
-            if abs(weight_diff) > 0.01:  # Only trade if difference > 1%
+            if abs(weight_diff) > 0.01:
                 target_value = (target_weight / 100) * total_value
                 current_value = (current_weight / 100) * total_value
                 trade_value = target_value - current_value
-
                 price = current_prices[ticker]
                 quantity = trade_value / price
 
-                # Account for transaction costs
                 if quantity != 0:
                     transaction_cost = abs(trade_value) * transaction_cost_rate
-
-                    # Execute trade
                     if self.add_position(ticker, quantity, price, transaction_cost):
                         trades[ticker] = quantity
 

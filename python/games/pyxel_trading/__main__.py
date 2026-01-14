@@ -10,7 +10,7 @@ from dumbfi.widgets import (
     ScrollableListWidget,
     TextBoxWidget,
 )
-from game import config
+from . import config
 
 DEBUG = True
 

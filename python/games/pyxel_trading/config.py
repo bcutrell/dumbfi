@@ -2,8 +2,8 @@
 # Market Data
 #
 
-# Paths (temp)
-MARKET_DATA_FILE = "data/sample_prices.csv"
+# Paths - relative to repo root
+MARKET_DATA_FILE = "../../../data/sample_prices.csv"
 
 #
 # Screen settings

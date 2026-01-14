@@ -1,22 +1,24 @@
-# project specific
+# Project specific
 TODO
 notes/
-data/
 .env
 yfinance.cache
 
-# uv specific
-.uv/
-.venv/
-**/__pypackages__/
+# Data - keep structure, ignore large files
+data/*.cache
 
-# byte-compiled / optimized / DLL files
- **/__pycache__/
+# Python
+.venv/
+python/.venv/
+**/__pycache__/
 *.py[cod]
 *$py.class
 *.so
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
 
-# packaging
+# Python packaging
 .Python
 build/
 develop-eggs/
@@ -34,6 +36,15 @@ wheels/
 .installed.cfg
 *.egg
 /target/
+
+# Go
+go/bin/
+go/vendor/
+
+# Node/TypeScript
+node_modules/
+inkfolio/node_modules/
+inkfolio/dist/
 package-lock.json
 
 # macOS
@@ -44,8 +55,7 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# IDE files
+# IDE
 .idea/
 .vscode/
 *.swp
-

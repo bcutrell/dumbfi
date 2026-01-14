@@ -69,8 +69,6 @@ export const ASCII_LOGO = `
  | | | | | | | '_ \` _ \\| '_ \\| |_  | |
  | |_| | |_| | | | | | | |_) |  _| | |
  |____/ \\__,_|_| |_| |_|_.__/|_|   |_|
-
- 💰  PORTFOLIO REBALANCER 3000™  💰
 `;
 
 export const LOADING_MESSAGES = [
