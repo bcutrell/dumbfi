@@ -1,5 +1,7 @@
 package finance
 
+import "time"
+
 // Optimizer provides portfolio optimization functionality.
 // TODO: Implement using gonum for matrix operations.
 type Optimizer struct {
@@ -51,4 +53,28 @@ func (o *Optimizer) MinVolatility() (*OptimizationResult, error) {
 		result.Weights[ticker] = 1.0 / float64(len(o.Tickers))
 	}
 	return result, nil
+}
+
+//
+// Tax Aware
+//
+
+type Holding struct {
+	Ticker       string
+	TargetWeight float64
+	Lots         []TaxLot
+}
+
+type TaxLot struct {
+	Shares       float64
+	CostBasis    float64 // per share
+	PurchaseDate time.Time
+}
+
+func (lot TaxLot) Value(price float64) float64 {
+	return lot.Shares * price
+}
+
+func (lot TaxLot) TotalCost() float64 {
+	return lot.Shares * lot.CostBasis
 }
