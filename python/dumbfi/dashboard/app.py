@@ -107,11 +107,11 @@ def _build_ticker_chart(snapshots: list[DailySnapshot], show_targets: bool) -> g
             x=dates,
             y=weights,
             marker_color=colors,
-            hovertemplate=f"{ticker}<br>Weight: %{{y:.1f}}%<br>Avg Gain: %{{customdata:.1f}}%<extra></extra>",
             customdata=gains,
+            hoverinfo="none",
         ))
 
-    fig.update_layout(barmode="stack", **_chart_layout("PORTFOLIO ALLOCATION (%)"))
+    fig.update_layout(barmode="stack", **_chart_layout("PORTFOLIO ALLOCATION (%)", dates))
 
     if show_targets:
         _add_target_lines(fig, tickers)
@@ -142,15 +142,13 @@ def _build_lot_chart(snapshots: list[DailySnapshot], show_targets: bool) -> go.F
             x=dates,
             y=weights,
             marker_color=colors,
-            hovertemplate=(
-                f"{ticker} Lot {lot_idx}<br>"
-                "Weight: %{y:.1f}%<br>"
-                "Gain: %{customdata:.1f}%<extra></extra>"
-            ),
+            marker_line_color=NES_BG,
+            marker_line_width=1,
             customdata=gains,
+            hoverinfo="none",
         ))
 
-    fig.update_layout(barmode="stack", **_chart_layout("ALLOCATION BY LOT (%)"))
+    fig.update_layout(barmode="stack", **_chart_layout("ALLOCATION BY LOT (%)", dates))
 
     if show_targets:
         _add_target_lines(fig, list(TARGET_WEIGHTS.keys()))
@@ -189,19 +187,45 @@ def _build_return_chart(snapshots: list[DailySnapshot]) -> go.Figure:
         y=returns,
         mode="lines",
         line=dict(color=NES_GREEN, width=2, shape="hv"),
-        hovertemplate="Date: %{x}<br>Return: %{y:.2f}%<extra></extra>",
+        hoverinfo="none",
     ))
-    fig.update_layout(**_chart_layout("CUMULATIVE RETURN (%)"), height=250)
+    layout = _chart_layout("CUMULATIVE RETURN (%)", dates)
+    layout["height"] = 280
+    fig.update_layout(**layout)
     return fig
 
 
-def _chart_layout(title: str) -> dict:
+def _quarter_ticks(dates: list[str]) -> tuple[list[str], list[str]]:
+    """Compute tick positions and labels for quarter boundaries."""
+    tickvals: list[str] = []
+    ticktext: list[str] = []
+    seen: set[tuple[int, int]] = set()
+    for d in dates:
+        year = int(d[:4])
+        month = int(d[5:7])
+        q = (month - 1) // 3 + 1
+        key = (year, q)
+        if key not in seen:
+            seen.add(key)
+            tickvals.append(d)
+            ticktext.append(f"{year} Q{q}")
+    return tickvals, ticktext
+
+
+def _chart_layout(title: str, dates: list[str] | None = None) -> dict:
     """Shared layout settings using NES template."""
+    xaxis = dict(type="category", ticklabelstandoff=12)
+    if dates:
+        tickvals, ticktext = _quarter_ticks(dates)
+        xaxis.update(tickvals=tickvals, ticktext=ticktext)
     return dict(
         title=title,
         template="nes",
-        margin=dict(l=50, r=30, t=50, b=30),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=50, r=30, t=60, b=60),
+        showlegend=False,
+        hovermode="x",
+        xaxis=xaxis,
+        height=600,
     )
 
 
@@ -212,6 +236,51 @@ _EXTERNAL_CSS = [
     "https://unpkg.com/nes.css@2.3.0/css/nes.min.css",
     "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap",
 ]
+
+
+def _info_cell(label: str, value_id: str, color: str | None = None) -> html.Div:
+    """One cell in the hover info bar. Colored label for ticker cells."""
+    label_color = color if color else "#888"
+    return html.Div([
+        html.Div(label, style={"fontSize": "8px", "color": label_color, "marginBottom": "2px"}),
+        html.Span(id=value_id, children="--", style={"fontSize": "11px"}),
+    ], style={"flex": "1 1 auto", "minWidth": "120px"})
+
+
+def _legend_bar() -> html.Div:
+    """NES-styled legend bar with colored blocks per ticker + target weight."""
+    items = []
+    for ticker, target in TARGET_WEIGHTS.items():
+        color = ticker_gain_color(ticker, 0)
+        items.append(html.Div([
+            html.Span(style={
+                "display": "inline-block",
+                "width": "20px",
+                "height": "20px",
+                "backgroundColor": color,
+                "marginRight": "8px",
+                "verticalAlign": "middle",
+                "border": "3px solid #e0e0e0",
+                "imageRendering": "pixelated",
+            }),
+            html.Span(f"{ticker}", style={
+                "fontSize": "11px",
+                "color": color,
+                "marginRight": "4px",
+                "verticalAlign": "middle",
+            }),
+            html.Span(f"{target * 100:.0f}%", style={
+                "fontSize": "9px",
+                "color": "#888",
+                "verticalAlign": "middle",
+            }),
+        ], style={"display": "inline-block", "marginRight": "32px"})
+        )
+    return html.Div(
+        className="nes-container is-dark",
+        children=items,
+        style={"marginBottom": "8px", "padding": "10px 16px"},
+    )
 
 
 def create_app(csv_path: str | None = None) -> Dash:
@@ -233,19 +302,13 @@ def create_app(csv_path: str | None = None) -> Dash:
         font-family: 'Press Start 2P', monospace;
         image-rendering: pixelated;
     }
-    .nes-container { margin-bottom: 16px; }
     .nes-container.is-dark { background-color: #212529; }
-    /* style Dash checklist labels */
     #controls label {
         font-family: 'Press Start 2P', monospace;
         font-size: 11px;
         cursor: pointer;
     }
     #controls input[type="checkbox"] { display: none; }
-    .nes-text.is-primary { color: #209cee; }
-    .nes-text.is-success { color: #92cc41; }
-    .nes-text.is-warning { color: #f7d51d; }
-    .nes-text.is-error   { color: #e76e55; }
 </style>
 </head>
 <body>
@@ -261,30 +324,12 @@ def create_app(csv_path: str | None = None) -> Dash:
     app.layout = html.Div(
         style={"padding": "24px", "maxWidth": "1600px", "margin": "0 auto"},
         children=[
-            # Title container
+            # Controls
             html.Div(
                 className="nes-container is-dark with-title",
                 children=[
-                    html.P("PLAYER 1", className="title"),
-                    html.H1(
-                        "DumbFi Dashboard",
-                        style={"fontSize": "18px", "marginBottom": "4px"},
-                    ),
-                    html.P(
-                        "Tax-lot level holdings visualization",
-                        style={"fontSize": "10px", "color": "#888"},
-                    ),
-                ],
-            ),
-
-            # Controls container
-            html.Div(
-                className="nes-container is-dark",
-                children=[
-                    html.Span(
-                        "SELECT ",
-                        style={"fontSize": "10px", "marginRight": "12px", "color": NES_YELLOW},
-                    ),
+                    html.P("dumbfi", className="title"),
+                    html.Span("SELECT ", style={"fontSize": "10px", "marginRight": "12px", "color": NES_YELLOW}),
                     dcc.Checklist(
                         id="controls",
                         options=[
@@ -298,24 +343,54 @@ def create_app(csv_path: str | None = None) -> Dash:
                         labelStyle={"marginRight": "24px"},
                     ),
                 ],
-                style={"marginBottom": "16px", "padding": "12px 16px"},
+                style={"marginBottom": "8px", "padding": "12px 16px"},
             ),
 
-            # Main chart container
+            # Legend bar
+            _legend_bar(),
+
+            # Hover info bar (external tooltip)
             html.Div(
                 className="nes-container is-dark",
-                children=[dcc.Graph(id="main-chart", config={"displayModeBar": True})],
-                style={"padding": "8px"},
+                children=[html.Div(
+                    children=[
+                        _info_cell("DATE", "info-date"),
+                        _info_cell("VALUE", "info-value"),
+                        _info_cell("AAPL", "info-AAPL", ticker_gain_color("AAPL", 0)),
+                        _info_cell("XOM", "info-XOM", ticker_gain_color("XOM", 0)),
+                        _info_cell("YUM", "info-YUM", ticker_gain_color("YUM", 0)),
+                        _info_cell("IBM", "info-IBM", ticker_gain_color("IBM", 0)),
+                        _info_cell("RETURN", "info-return"),
+                    ],
+                    style={"display": "flex", "flexWrap": "wrap", "gap": "8px"},
+                )],
+                style={"marginBottom": "8px", "padding": "10px 16px"},
             ),
 
-            # Return chart container
+            # Main chart
             html.Div(
                 className="nes-container is-dark",
-                children=[dcc.Graph(id="return-chart", figure=_build_return_chart(snapshots), config={"displayModeBar": True})],
-                style={"padding": "8px"},
+                children=[dcc.Graph(
+                    id="main-chart",
+                    config={"displayModeBar": True, "displaylogo": False},
+                )],
+                style={"padding": "4px", "marginBottom": "8px"},
+            ),
+
+            # Return chart
+            html.Div(
+                className="nes-container is-dark",
+                children=[dcc.Graph(
+                    id="return-chart",
+                    figure=_build_return_chart(snapshots),
+                    config={"displayModeBar": True, "displaylogo": False},
+                )],
+                style={"padding": "4px"},
             ),
         ],
     )
+
+    # --- Callbacks ---
 
     @app.callback(
         Output("main-chart", "figure"),
@@ -327,6 +402,51 @@ def create_app(csv_path: str | None = None) -> Dash:
         if show_lots:
             return _build_lot_chart(snapshots, show_targets)
         return _build_ticker_chart(snapshots, show_targets)
+
+    @app.callback(
+        Output("info-date", "children"),
+        Output("info-value", "children"),
+        Output("info-AAPL", "children"),
+        Output("info-XOM", "children"),
+        Output("info-YUM", "children"),
+        Output("info-IBM", "children"),
+        Output("info-return", "children"),
+        Input("main-chart", "hoverData"),
+    )
+    def update_info_bar(hover_data: dict | None) -> tuple:
+        if hover_data is None:
+            return ("--",) * 7
+
+        date_str = hover_data["points"][0]["x"]
+        snap = next((s for s in snapshots if s.date == date_str), None)
+        if snap is None:
+            return ("--",) * 7
+
+        base_value = snapshots[0].total_value
+        ret_pct = (snap.total_value / base_value - 1) * 100
+
+        ticker_strs = []
+        for ticker in ["AAPL", "XOM", "YUM", "IBM"]:
+            w = snap.weights.get(ticker, 0) * 100
+            d = snap.drift.get(ticker, 0) * 100
+            ticker_lots = [l for l in snap.lots if l.ticker == ticker]
+            if ticker_lots:
+                total_val = sum(l.value for l in ticker_lots)
+                avg_gain = sum(l.gain_pct * l.value for l in ticker_lots) / total_val if total_val else 0
+            else:
+                avg_gain = 0
+            sign = "+" if avg_gain >= 0 else ""
+            ticker_strs.append(f"{w:.1f}% ({sign}{avg_gain:.1f}%)")
+
+        return (
+            date_str,
+            f"${snap.total_value:,.0f}",
+            ticker_strs[0],
+            ticker_strs[1],
+            ticker_strs[2],
+            ticker_strs[3],
+            f"{ret_pct:+.2f}%",
+        )
 
     return app
 
