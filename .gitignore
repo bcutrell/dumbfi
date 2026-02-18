@@ -3,6 +3,7 @@ TODO
 notes/
 .env
 yfinance.cache
+.local
 
 # Data - keep structure, ignore large files
 data/*.cache
